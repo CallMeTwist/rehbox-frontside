@@ -1,0 +1,220 @@
+Folder PATH listing
+Volume serial number is 561C-DC04
+C:\USERS\ADMIN\DOWNLOADS\REHBOX-MOTION-HEALTH-MAIN(1)\SRC
+¦   App.css
+¦   App.tsx
+¦   index.css
+¦   main.tsx
+¦   vite-env.d.ts
+¦   
++---app
+¦       providers.tsx
+¦       router.tsx
+¦       
++---components
+¦   ¦   NavLink.tsx
+¦   ¦   
+¦   +---layouts
+¦   ¦       ClientLayout.tsx
+¦   ¦       PTLayout.tsx
+¦   ¦       PublicLayout.tsx
+¦   ¦       
+¦   +---shared
+¦   ¦       CoinBadge.tsx
+¦   ¦       ExerciseCard.tsx
+¦   ¦       LanguageSelector.tsx
+¦   ¦       LockedFeature.tsx
+¦   ¦       NotificationBell.tsx
+¦   ¦       ProgressRing.tsx
+¦   ¦       StatsCard.tsx
+¦   ¦       
+¦   +---ui
+¦           accordion.tsx
+¦           alert-dialog.tsx
+¦           alert.tsx
+¦           aspect-ratio.tsx
+¦           avatar.tsx
+¦           badge.tsx
+¦           breadcrumb.tsx
+¦           button.tsx
+¦           calendar.tsx
+¦           card.tsx
+¦           carousel.tsx
+¦           chart.tsx
+¦           checkbox.tsx
+¦           collapsible.tsx
+¦           command.tsx
+¦           context-menu.tsx
+¦           dialog.tsx
+¦           drawer.tsx
+¦           dropdown-menu.tsx
+¦           form.tsx
+¦           hover-card.tsx
+¦           input-otp.tsx
+¦           input.tsx
+¦           label.tsx
+¦           menubar.tsx
+¦           navigation-menu.tsx
+¦           pagination.tsx
+¦           popover.tsx
+¦           progress.tsx
+¦           radio-group.tsx
+¦           resizable.tsx
+¦           scroll-area.tsx
+¦           select.tsx
+¦           separator.tsx
+¦           sheet.tsx
+¦           sidebar.tsx
+¦           skeleton.tsx
+¦           slider.tsx
+¦           sonner.tsx
+¦           switch.tsx
+¦           table.tsx
+¦           tabs.tsx
+¦           textarea.tsx
+¦           toast.tsx
+¦           toaster.tsx
+¦           toggle-group.tsx
+¦           toggle.tsx
+¦           tooltip.tsx
+¦           use-toast.ts
+¦           
++---features
+¦   +---auth
+¦   ¦   +---components
+¦   ¦   ¦       RegistrationForm.tsx
+¦   ¦   ¦       VettingPendingScreen.tsx
+¦   ¦   ¦       
+¦   ¦   +---hooks
+¦   ¦   ¦       useAuth.ts
+¦   ¦   ¦       
+¦   ¦   +---pages
+¦   ¦           Landing.tsx
+¦   ¦           Login.tsx
+¦   ¦           RegisterClient.tsx
+¦   ¦           RegisterPT.tsx
+¦   ¦           
+¦   +---client-dashboard
+¦   ¦   +---components
+¦   ¦   ¦       CameraTracker.tsx
+¦   ¦   ¦       CoinWallet.tsx
+¦   ¦   ¦       ExercisePlayer.tsx
+¦   ¦   ¦       LanguageSelector.tsx
+¦   ¦   ¦       PaymentGate.tsx
+¦   ¦   ¦       PosturePopup.tsx
+¦   ¦   ¦       ProgressRing.tsx
+¦   ¦   ¦       RatingModal.tsx
+¦   ¦   ¦       
+¦   ¦   +---hooks
+¦   ¦   ¦       useMotionTracking.ts
+¦   ¦   ¦       useMyPlan.ts
+¦   ¦   ¦       useRewards.ts
+¦   ¦   ¦       
+¦   ¦   +---pages
+¦   ¦           ExerciseSession.tsx
+¦   ¦           Home.tsx
+¦   ¦           MyPlan.tsx
+¦   ¦           Profile.tsx
+¦   ¦           Progress.tsx
+¦   ¦           QandA.tsx
+¦   ¦           Reminders.tsx
+¦   ¦           Rewards.tsx
+¦   ¦           Shop.tsx
+¦   ¦           
+¦   +---pt-dashboard
+¦   ¦   +---components
+¦   ¦   ¦       ClientCard.tsx
+¦   ¦   ¦       ComplianceChart.tsx
+¦   ¦   ¦       EarningsWidget.tsx
+¦   ¦   ¦       ExerciseCard.tsx
+¦   ¦   ¦       MotionReport.tsx
+¦   ¦   ¦       PlanBuilder.tsx
+¦   ¦   ¦       ScheduleReminder.tsx
+¦   ¦   ¦       
+¦   ¦   +---hooks
+¦   ¦   ¦       useClients.ts
+¦   ¦   ¦       useExerciseLibrary.ts
+¦   ¦   ¦       useMotionData.ts
+¦   ¦   ¦       
+¦   ¦   +---pages
+¦   ¦           ClientDetail.tsx
+¦   ¦           CreatePlan.tsx
+¦   ¦           ExerciseLibrary.tsx
+¦   ¦           Home.tsx
+¦   ¦           Messages.tsx
+¦   ¦           MyClients.tsx
+¦   ¦           Profile.tsx
+¦   ¦           Shop.tsx
+¦   ¦           
+¦   +---shared
+¦       +---components
+¦       ¦       ClientLayout.tsx
+¦       ¦       LoadingSpinner.tsx
+¦       ¦       Navbar.tsx
+¦       ¦       NotificationBell.tsx
+¦       ¦       PTLayout.tsx
+¦       ¦       PublicLayout.tsx
+¦       ¦       Sidebar.tsx
+¦       ¦       VideoPlayer.tsx
+¦       ¦       
+¦       +---hooks
+¦       ¦       useWebSocket.ts
+¦       ¦       
+¦       +---utils
+¦               api.ts
+¦               motion.ts
+¦               
++---hooks
+¦       use-mobile.tsx
+¦       use-toast.ts
+¦       
++---lib
+¦       api.ts
+¦       utils.ts
+¦       
++---mock
+¦       data.ts
+¦       
++---pages
+¦   ¦   Index.tsx
+¦   ¦   NotFound.tsx
+¦   ¦   
+¦   +---client
+¦   ¦       ClientChat.tsx
+¦   ¦       ClientHome.tsx
+¦   ¦       ClientPlan.tsx
+¦   ¦       ClientProfile.tsx
+¦   ¦       ClientProgress.tsx
+¦   ¦       ClientRewards.tsx
+¦   ¦       ClientSession.tsx
+¦   ¦       ClientShop.tsx
+¦   ¦       
+¦   +---pt
+¦   ¦       PTClientDetail.tsx
+¦   ¦       PTClients.tsx
+¦   ¦       PTCreatePlan.tsx
+¦   ¦       PTExercises.tsx
+¦   ¦       PTHome.tsx
+¦   ¦       PTProfile.tsx
+¦   ¦       PTShop.tsx
+¦   ¦       
+¦   +---public
+¦           Landing.tsx
+¦           Login.tsx
+¦           PendingVetting.tsx
+¦           RegisterClient.tsx
+¦           RegisterPT.tsx
+¦           Subscription.tsx
+¦           
++---store
+¦       authStore.ts
+¦       uiStore.ts
+¦       
++---styles
+¦       globals.css
+¦       theme.ts
+¦       
++---test
+        example.test.ts
+        setup.ts
+        

@@ -7,6 +7,14 @@ export const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api',
+  withCredentials: true,   // ← essential for Sanctum
+  headers: {
+    'Accept': 'application/json',
+  },
+});
+
 // Attach token to every request
 apiClient.interceptors.request.use((config) => {
   const stored = localStorage.getItem('rehbox-auth');

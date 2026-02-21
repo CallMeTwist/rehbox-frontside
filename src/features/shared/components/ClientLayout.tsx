@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, useNavigate, Navigate } from "react-router-dom";
 import { useState } from "react";
 import {
   LayoutDashboard, ClipboardList, TrendingUp, Gift, ShoppingBag,
@@ -25,6 +25,9 @@ const navItems = [
 const ClientLayout = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "client") return <Navigate to="/" replace />;
+
   const { sidebarOpen, toggleSidebar } = useUIStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const client = user || mockClient;

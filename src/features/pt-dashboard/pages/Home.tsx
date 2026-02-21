@@ -3,6 +3,8 @@ import { Users, TrendingUp, ClipboardList, DollarSign, ChevronRight } from "luci
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { mockClients, mockPTStats, mockComplianceData } from "@/mock/data";
 import { tooltipStyle } from "@/styles/theme";
+import VettingPendingScreen from "@/features/auth/components/VettingPendingScreen";
+import { useAuthStore } from "@/store/authStore";
 
 const StatsCard = ({ title, value, icon, colorClass, trend }: { title: string; value: string | number; icon: string; colorClass?: string; trend?: { value: string; positive: boolean } }) => (
   <div className="bg-card rounded-2xl p-5 shadow-card card-hover border border-border">
@@ -16,6 +18,13 @@ const StatsCard = ({ title, value, icon, colorClass, trend }: { title: string; v
 );
 
 const Home = () => {
+  const user = useAuthStore((s) => s.user);
+
+  // 👇 Add this block — everything below it stays exactly as you wrote it
+  if (user?.vetting_status !== "approved") {
+    return <VettingPendingScreen />;
+  }
+
   const recentClients = mockClients.slice(0, 4);
   return (
     <div className="space-y-6 animate-slide-up">

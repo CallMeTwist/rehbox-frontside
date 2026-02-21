@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, Navigate, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
   LayoutDashboard, Users, Dumbbell, PlusCircle, ShoppingBag,
@@ -24,6 +24,12 @@ const navItems = [
 const PTLayout = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  // Not logged in → send to login
+  if (!user) return <Navigate to="/login" replace />;
+  
+  // Logged in but wrong role
+  if (user.role !== "pt") return <Navigate to="/" replace />;
+
   const { sidebarOpen, toggleSidebar } = useUIStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const pt = user || mockPT;
