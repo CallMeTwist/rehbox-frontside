@@ -43,7 +43,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import api from '@/features/shared/utils/api';
+import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
 export function usePTRegister() {
@@ -52,17 +52,22 @@ export function usePTRegister() {
 
   return useMutation({
     mutationFn: (formData: FormData) =>
-      api.post('/auth/pt/register', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      }),
+      api.post('/auth/pt/register', formData),
     onSuccess: ({ data }) => {
       setAuth(data.user, data.token);
       toast.success('Registration submitted! Awaiting vetting (up to 48hrs).');
       navigate('/pt/home');
     },
     onError: (err: any) => {
-      const msg = err.response?.data?.message ?? 'Registration failed.';
-      toast.error(msg);
+      // const msg = err.response?.data?.message ?? 'Registration failed.';
+      // toast.error(msg);
+      const errors = err.response?.data?.errors;
+      if (errors) {
+        const firstError = Object.values(errors)[0] as string[];
+        toast.error(firstError[0]);
+      } else {
+        toast.error(err.response?.data?.message ?? 'Registration failed.');
+      }
     },
   });
 }

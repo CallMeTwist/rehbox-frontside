@@ -3,7 +3,7 @@ import { mockExercises } from "@/mock/data";
 
 // src/features/pt-dashboard/hooks/useExerciseLibrary.ts
 import { useState } from 'react';
-import { api } from '@/lib/api';
+import api from '@/lib/api';
 
 export interface Exercise {
   id: number;

@@ -1,50 +1,49 @@
-import { useEffect, useRef, useCallback, useState } from "react";
-
-type MessageHandler = (data: unknown) => void;
-
-/**
- * WebSocket hook for real-time features (notifications, chat)
- * Currently a placeholder - connects when a real WS endpoint is configured
- */
-export function useWebSocket(url?: string) {
-  const wsRef = useRef<WebSocket | null>(null);
-  const [connected, setConnected] = useState(false);
-
-  const connect = useCallback(() => {
-    if (!url) return;
-    try {
-      const ws = new WebSocket(url);
-      ws.onopen = () => setConnected(true);
-      ws.onclose = () => setConnected(false);
-      ws.onerror = () => setConnected(false);
-      wsRef.current = ws;
-    } catch {
-      setConnected(false);
-    }
-  }, [url]);
-
-  const send = useCallback((data: unknown) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(data));
-    }
-  }, []);
-
-  const onMessage = useCallback((handler: MessageHandler) => {
-    if (wsRef.current) {
-      wsRef.current.onmessage = (event) => {
-        try {
-          handler(JSON.parse(event.data));
-        } catch {
-          handler(event.data);
-        }
-      };
-    }
-  }, []);
+// src/features/shared/hooks/useWebSocket.ts
+import { useEffect, useCallback } from 'react';
+import echo from '@/shared/utils/echo';
+import { useAuthStore } from '@/store/authStore';
+import toast from 'react-hot-toast';
+export function usePTNotifications() {
+  const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
-    connect();
-    return () => { wsRef.current?.close(); };
-  }, [connect]);
+    if (!user || user.role !== 'pt') return;
 
-  return { connected, send, onMessage };
+    const ptId = user.id;
+
+    // Listen on PT's private channel
+    const channel = echo.channel(`pt.${ptId}`);
+
+    channel.listen('.client.started', (data: any) => {
+      toast(`🏃 ${data.client_name} started an exercise`, {
+        icon: '▶️',
+        duration: 4000,
+      });
+    });
+
+    channel.listen('.client.completed', (data: any) => {
+      toast.success(
+        `✅ ${data.client_name} completed a session! Form score: ${data.form_score ?? 'N/A'}%`
+      );
+    });
+
+    return () => {
+      echo.leaveChannel(`pt.${ptId}`);
+    };
+  }, [user]);
+}
+
+export function useChatSocket(onMessage: (msg: any) => void) {
+  const user = useAuthStore((s) => s.user);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = echo.channel(`chat.${user.id}`);
+    channel.listen('.message.new', onMessage);
+
+    return () => {
+      echo.leaveChannel(`chat.${user.id}`);
+    };
+  }, [user, onMessage]);
 }

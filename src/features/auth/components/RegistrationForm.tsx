@@ -165,7 +165,7 @@ interface Props {
 }
 
 const RegistrationForm = ({ type }: Props) => {
-  const ptRegister     = usePTRegister();
+  const ptRegister = usePTRegister();
   const clientRegister = useClientRegister();
 
   const [step, setStep] = useState(1);
@@ -175,28 +175,59 @@ const RegistrationForm = ({ type }: Props) => {
     specialty: "", city: "", activation_code: "",
   });
   const [credentialFile, setCredentialFile] = useState<File | null>(null);
-  const [agreedToTerms, setAgreedToTerms]   = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const update = (key: string, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  // const handleSubmit = () => {
+  //   if (type === "pt") {
+  //     const fd = new FormData();
+  //     Object.entries(form).forEach(([k, v]) => fd.append(k, v));
+  //     if (credentialFile) fd.append("credential_document", credentialFile);
+  //     fd.append("agreed_to_terms", "1");
+  //     ptRegister.mutate(fd);
+  //   } else {
+  //     clientRegister.mutate({
+  //       name:            form.name,
+  //       email:           form.email,
+  //       password:        form.password,
+  //       password_confirmation: form.password_confirmation,
+  //       phone:           form.phone,
+  //       activation_code: form.activation_code,
+  //       agreed_to_terms: "1",
+  //     });
+  //   }
+  // };
+
   const handleSubmit = () => {
-    if (type === "pt") {
+    if (type === 'pt') {
       const fd = new FormData();
-      Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-      if (credentialFile) fd.append("credential_document", credentialFile);
-      fd.append("agreed_to_terms", "1");
+
+      fd.append('name', form.name);
+      fd.append('email', form.email);
+      fd.append('password', form.password);
+      fd.append('password_confirmation', form.password_confirmation);
+      fd.append('phone', form.phone);
+      fd.append('license_number', form.license_number);
+      fd.append('hospital_or_clinic', form.hospital_or_clinic);
+      fd.append('specialty', form.specialty);
+      fd.append('city', form.city);
+      fd.append('agreed_to_terms', '1');
+
+      if (credentialFile) {
+        fd.append('credential_document', credentialFile);
+      }
+
+      // 👇 Add this — paste the output here
+      console.log('credentialFile state:', credentialFile);
+      console.log('credentialFile type:', typeof credentialFile);
+      console.log('Is File instance:', credentialFile instanceof File);
+      for (const [key, value] of fd.entries()) {
+        console.log(key, '→', value);
+      }
+
       ptRegister.mutate(fd);
-    } else {
-      clientRegister.mutate({
-        name:            form.name,
-        email:           form.email,
-        password:        form.password,
-        password_confirmation: form.password_confirmation,
-        phone:           form.phone,
-        activation_code: form.activation_code,
-        agreed_to_terms: "1",
-      });
     }
   };
 
@@ -211,9 +242,8 @@ const RegistrationForm = ({ type }: Props) => {
           {[1, 2, 3].map((s) => (
             <div
               key={s}
-              className={`h-1.5 flex-1 rounded-full transition-all ${
-                s <= step ? "bg-primary" : "bg-muted"
-              }`}
+              className={`h-1.5 flex-1 rounded-full transition-all ${s <= step ? "bg-primary" : "bg-muted"
+                }`}
             />
           ))}
         </div>
@@ -289,18 +319,26 @@ const RegistrationForm = ({ type }: Props) => {
       {/* ── PT Step 3: Documents + Terms ── */}
       {type === "pt" && step === 3 && (
         <>
+          {/* Step 3 file upload section */}
           <div
             className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary transition-colors"
-            onClick={() => document.getElementById("cred-upload")?.click()}
+            onClick={() => document.getElementById('cred-upload')?.click()}
           >
             <input
-              id="cred-upload" type="file" className="hidden"
+              id="cred-upload"
+              type="file"
+              className="hidden"
               accept=".pdf,.jpg,.jpeg,.png"
-              onChange={(e) => setCredentialFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => {               // ✅ this is the critical part
+                const file = e.target.files?.[0];
+                if (file) setCredentialFile(file);
+              }}
             />
             <p className="text-3xl mb-2">📄</p>
             <p className="text-sm font-medium text-primary">
-              {credentialFile ? credentialFile.name : "Upload Credentials"}
+              {credentialFile
+                ? `✅ ${credentialFile.name}` // ← shows filename if correctly captured
+                : 'Upload Credentials'}
             </p>
             <p className="text-xs text-muted-foreground mt-1">PDF, JPG or PNG · max 5MB</p>
           </div>
@@ -394,8 +432,8 @@ const RegistrationForm = ({ type }: Props) => {
             {isPending
               ? "Submitting..."
               : type === "pt"
-              ? "Submit for Review"
-              : "Create Account"}
+                ? "Submit for Review"
+                : "Create Account"}
           </Button>
         )}
       </div>

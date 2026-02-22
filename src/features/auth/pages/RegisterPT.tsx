@@ -16,7 +16,8 @@ const RegisterPT = () => {
           <p className="text-muted-foreground text-sm">Complete your profile to get vetted and start onboarding clients.</p>
         </div>
         <div className="bg-card rounded-2xl p-6 shadow-card border border-border">
-          <RegistrationForm type="pt" onSubmit={() => navigate("/pending-vetting")} />
+          {/* <RegistrationForm type="pt" onSubmit={() => navigate("/pending-vetting")} /> */}
+          <RegistrationForm type="pt" />
         </div>
         <p className="text-center text-sm text-muted-foreground mt-6">
           Already registered? <Link to="/login" className="text-primary font-semibold hover:underline">Sign in</Link>

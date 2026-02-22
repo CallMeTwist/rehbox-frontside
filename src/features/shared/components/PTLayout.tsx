@@ -10,6 +10,7 @@ import NotificationBell from "@/features/shared/components/NotificationBell";
 import LanguageSelector from "@/features/client-dashboard/components/LanguageSelector";
 import CoinWallet from "@/features/client-dashboard/components/CoinWallet";
 import { mockPT } from "@/mock/data";
+import { usePTNotifications } from '@/features/shared/hooks/useWebSocket';
 
 const navItems = [
   { to: "/pt/home", icon: LayoutDashboard, label: "Dashboard" },
@@ -24,6 +25,7 @@ const navItems = [
 const PTLayout = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  usePTNotifications();
   // Not logged in → send to login
   if (!user) return <Navigate to="/login" replace />;
   
