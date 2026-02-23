@@ -1,6 +1,6 @@
 // src/features/shared/hooks/useWebSocket.ts
 import { useEffect, useCallback } from 'react';
-import echo from '@/shared/utils/echo';
+import echo from '@/features/shared/utils/echo';
 import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
 export function usePTNotifications() {
