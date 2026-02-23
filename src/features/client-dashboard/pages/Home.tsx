@@ -3,6 +3,7 @@ import { Play, TrendingUp, Award, MessageCircle, ChevronRight } from "lucide-rea
 import { useAuthStore } from "@/store/authStore";
 import { mockClient, mockPlan, mockRewards } from "@/mock/data";
 import ProgressRing from "@/features/client-dashboard/components/ProgressRing";
+import api from "@/features/shared/utils/api";
 
 const StatsCard = ({ title, value, icon, colorClass, trend }: { title: string; value: string | number; icon: string; colorClass?: string; trend?: { value: string; positive: boolean } }) => (
   <div className="bg-card rounded-2xl p-5 shadow-card card-hover border border-border">
@@ -19,9 +20,32 @@ const Home = () => {
   const { user } = useAuthStore();
   const client = user || mockClient;
   const todayExercises = mockPlan.exercises.slice(0, 2);
+  const { data: profileData } = useQuery({
+    queryKey: ['client-profile'],
+    queryFn: () => api.get('/client/profile').then(r => r.data),
+  });
+
+  const hasPT = !!profileData?.client?.physiotherapist_id;
 
   return (
     <div className="space-y-6 animate-slide-up">
+
+      {!hasPT && (
+        <div className="bg-primary/5 border border-primary/20 rounded-2xl p-5 flex items-start gap-4">
+          <span className="text-3xl">👨‍⚕️</span>
+          <div className="flex-1">
+            <p className="font-semibold text-sm">Connect with a Physiotherapist</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Enter an activation code from your PT to unlock a personalized exercise plan.
+            </p>
+            <button className="mt-3 text-xs bg-primary text-white px-4 py-2 rounded-xl font-semibold">
+              Enter Code
+            </button>
+          </div>
+        </div>
+      )}
+
+
       <div className="gradient-hero rounded-2xl p-6 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-40 h-40 rounded-full opacity-10" style={{ background: 'hsl(var(--hot-pink))' }} />
         <p className="text-white/70 text-sm mb-1">Good morning 👋</p>
@@ -74,3 +98,7 @@ const Home = () => {
 };
 
 export default Home;
+function useQuery(arg0: { queryKey: string[]; queryFn: () => Promise<any>; }): { data: any; } {
+  throw new Error("Function not implemented.");
+}
+

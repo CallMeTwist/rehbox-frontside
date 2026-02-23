@@ -4,14 +4,35 @@ import Pusher from 'pusher-js';
 
 (window as any).Pusher = Pusher;
 
-const echo = new Echo({
-  broadcaster:       'reverb',
-  key:               import.meta.env.VITE_REVERB_APP_KEY,
-  wsHost:            import.meta.env.VITE_REVERB_HOST ?? 'localhost',
-  wsPort:            import.meta.env.VITE_REVERB_PORT ?? 8080,
-  wssPort:           import.meta.env.VITE_REVERB_PORT ?? 8080,
-  forceTLS:          (import.meta.env.VITE_REVERB_SCHEME ?? 'http') === 'https',
-  enabledTransports: ['ws', 'wss'],
-});
+let echoInstance: InstanceType<typeof Echo> | null = null;
 
-export default echo;
+function getEcho(): InstanceType<typeof Echo> {
+  // Only instantiate when first used — not at import time
+  if (!echoInstance) {
+    const key = import.meta.env.VITE_REVERB_APP_KEY;
+
+    if (!key) {
+      console.warn('VITE_REVERB_APP_KEY is not set — WebSocket disabled');
+      // Return a dummy object so the app doesn't crash
+      return {
+        channel: () => ({ listen: () => ({}) }),
+        leaveChannel: () => {},
+      } as any;
+    }
+
+    echoInstance = new Echo({
+      broadcaster:       'reverb',
+      key,
+      wsHost:            import.meta.env.VITE_REVERB_HOST   ?? 'localhost',
+      wsPort:            Number(import.meta.env.VITE_REVERB_PORT)  ?? 9000,
+      wssPort:           Number(import.meta.env.VITE_REVERB_PORT)  ?? 9000,
+      forceTLS:          (import.meta.env.VITE_REVERB_SCHEME ?? 'http') === 'https',
+      enabledTransports: ['ws', 'wss'],
+      enableLogging:     true,
+    });
+  }
+
+  return echoInstance;
+}
+
+export default getEcho;

@@ -380,7 +380,10 @@ const RegistrationForm = ({ type }: Props) => {
               onChange={(e) => update("phone", e.target.value)} />
           </div>
           <div className="space-y-1">
-            <Label>Activation Code</Label>
+            <Label>
+              Activation Code{" "}
+              <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+            </Label>
             <Input
               placeholder="Code from your Physiotherapist"
               value={form.activation_code}
@@ -388,7 +391,7 @@ const RegistrationForm = ({ type }: Props) => {
               className="tracking-widest font-mono"
             />
             <p className="text-xs text-muted-foreground">
-              Your physiotherapist sends this code when they onboard you.
+              Have a code? Enter it to link with your physiotherapist. You can also add one later.
             </p>
           </div>
           <div className="space-y-1">
