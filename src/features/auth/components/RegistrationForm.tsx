@@ -215,19 +215,19 @@ const RegistrationForm = ({ type }: Props) => {
       fd.append('city', form.city);
       fd.append('agreed_to_terms', '1');
 
-      if (credentialFile) {
-        fd.append('credential_document', credentialFile);
-      }
+      if (credentialFile) fd.append('credential_document', credentialFile);
+    ptRegister.mutate(fd);
 
-      // 👇 Add this — paste the output here
-      console.log('credentialFile state:', credentialFile);
-      console.log('credentialFile type:', typeof credentialFile);
-      console.log('Is File instance:', credentialFile instanceof File);
-      for (const [key, value] of fd.entries()) {
-        console.log(key, '→', value);
-      }
-
-      ptRegister.mutate(fd);
+  } else {
+      clientRegister.mutate({
+        name:                  form.name,
+        email:                 form.email,
+        password:              form.password,
+        password_confirmation: form.password_confirmation,
+        phone:                 form.phone,
+        activation_code:       form.activation_code || '',
+        agreed_to_terms:       '1',
+      });
     }
   };
 

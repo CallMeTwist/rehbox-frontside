@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Play, TrendingUp, Award, MessageCircle, ChevronRight } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
@@ -15,6 +16,8 @@ const StatsCard = ({ title, value, icon, colorClass, trend }: { title: string; v
     <p className="text-sm font-medium text-foreground mt-0.5">{title}</p>
   </div>
 );
+
+
 
 const Home = () => {
   const { user } = useAuthStore();
@@ -98,7 +101,4 @@ const Home = () => {
 };
 
 export default Home;
-function useQuery(arg0: { queryKey: string[]; queryFn: () => Promise<any>; }): { data: any; } {
-  throw new Error("Function not implemented.");
-}
 
