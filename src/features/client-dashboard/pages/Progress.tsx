@@ -15,7 +15,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const Progress = () => {
-  const { data, isLoading } = useProgress();
+  const { data, isLoading, isError } = useProgress();
 
   if (isLoading) {
     return (
@@ -28,6 +28,19 @@ const Progress = () => {
       </div>
     );
   }
+
+  if (isError || !data) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <p className="text-4xl mb-3">📊</p>
+        <h2 className="font-display font-bold text-xl mb-2">No Progress Yet</h2>
+        <p className="text-muted-foreground text-sm">
+          Complete your first exercise session to start tracking progress.
+        </p>
+      </div>
+    );
+  }
+
 
   const { summary, weekly_chart, recent_sessions } = data;
 

@@ -21,15 +21,23 @@ function getEcho(): InstanceType<typeof Echo> {
     }
 
     echoInstance = new Echo({
-      broadcaster:       'reverb',
-      key,
-      wsHost:            import.meta.env.VITE_REVERB_HOST   ?? 'localhost',
-      wsPort:            Number(import.meta.env.VITE_REVERB_PORT)  ?? 9000,
-      wssPort:           Number(import.meta.env.VITE_REVERB_PORT)  ?? 9000,
-      forceTLS:          (import.meta.env.VITE_REVERB_SCHEME ?? 'http') === 'https',
-      enabledTransports: ['ws', 'wss'],
-      enableLogging:     true,
-    });
+  broadcaster:       'reverb',
+  key,
+  wsHost:            import.meta.env.VITE_REVERB_HOST  ?? 'localhost',
+  wsPort:            Number(import.meta.env.VITE_REVERB_PORT) ?? 9000,
+  wssPort:           Number(import.meta.env.VITE_REVERB_PORT) ?? 9000,
+  forceTLS:          (import.meta.env.VITE_REVERB_SCHEME ?? 'http') === 'https',
+  enabledTransports: ['ws', 'wss'],
+  enableLogging:     true,
+  authEndpoint:      'http://127.0.0.1:8000/api/broadcasting/auth',  // ← add this
+  auth: {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('rehbox-auth')
+        ? JSON.parse(localStorage.getItem('rehbox-auth')!).state?.token ?? ''
+        : ''}`,
+    },
+  },
+});
   }
 
   return echoInstance;

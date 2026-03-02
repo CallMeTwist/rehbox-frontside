@@ -91,7 +91,7 @@ export const useAuthStore = create<AuthState>()(
         })),
 
       logout: () => {
-        localStorage.removeItem('rehbox_token');
+        localStorage.removeItem('rehbox-auth');
         set({ user: null, token: null });
       },
 

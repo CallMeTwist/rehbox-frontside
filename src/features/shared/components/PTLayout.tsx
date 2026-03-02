@@ -11,6 +11,9 @@ import LanguageSelector from "@/features/client-dashboard/components/LanguageSel
 import CoinWallet from "@/features/client-dashboard/components/CoinWallet";
 import { mockPT } from "@/mock/data";
 import { usePTNotifications } from '@/features/shared/hooks/useWebSocket';
+import { InstallPrompt } from "./InstallPrompt";
+import { OnboardingTutorial } from "@/features/pt-dashboard/components/OnboardingTutorial";
+
 
 const navItems = [
   { to: "/pt/home", icon: LayoutDashboard, label: "Dashboard" },
@@ -102,6 +105,8 @@ const PTLayout = () => {
         </header>
         <main className="flex-1 overflow-y-auto p-4 md:p-6"><Outlet /></main>
       </div>
+      <InstallPrompt />
+      <OnboardingTutorial />
     </div>
   );
 };

@@ -10,6 +10,7 @@ import NotificationBell from "@/features/shared/components/NotificationBell";
 import LanguageSelector from "@/features/client-dashboard/components/LanguageSelector";
 import CoinWallet from "@/features/client-dashboard/components/CoinWallet";
 import { mockClient } from "@/mock/data";
+import { InstallPrompt } from "./InstallPrompt";
 
 const navItems = [
   { to: "/client/home", icon: LayoutDashboard, label: "Home" },
@@ -99,6 +100,7 @@ const ClientLayout = () => {
         </header>
         <main className="flex-1 overflow-y-auto p-4 md:p-6"><Outlet /></main>
       </div>
+      <InstallPrompt />
     </div>
   );
 };
