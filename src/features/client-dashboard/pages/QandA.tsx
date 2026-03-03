@@ -7,24 +7,24 @@ import { useAuthStore } from '@/store/authStore';
 import { useChatSocket } from '@/features/shared/hooks/useWebSocket';
 
 const QandA = () => {
-  const user      = useAuthStore((s) => s.user);
-  const qc        = useQueryClient();
-  const [text, setText]   = useState('');
+  const user  = useAuthStore((s) => s.user);
+  const qc = useQueryClient();
+  const [text, setText] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
-
-  // ── Fetch PT info from profile (client only, won't cause 403 here
+  const isClient = user?.role === 'client';
   //    because QandA is only accessible from ClientLayout)
   const { data: clientData } = useQuery({
     queryKey: ['client-profile'],
     queryFn:  () => api.get('/client/profile').then(r => r.data),
+    enabled:  isClient,
   });
 
-  const ptName   = clientData?.client?.physiotherapist?.name
-                ?? clientData?.client?.physiotherapist?.user?.name
-                ?? 'Your Physiotherapist';
+  const ptName = clientData?.client?.physiotherapist?.name
+    ?? clientData?.client?.physiotherapist?.user?.name
+    ?? 'Your Physiotherapist';
   const ptInitial = ptName.charAt(0).toUpperCase();
 
-  // ── Fetch messages — single consistent query key ──
+  //Fetch messages — single consistent query key
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ['client-chat'],
     queryFn:  async () => {
@@ -32,12 +32,13 @@ const QandA = () => {
       const data = res.data;
       return Array.isArray(data) ? data : (data.messages ?? []);
     },
+    enabled: isClient,
   });
 
-  // ── Real-time: append incoming messages using SAME query key ──
+  //Real-time: append incoming messages using SAME query key
   useChatSocket((msg: any) => {
     qc.setQueryData(
-      ['client-chat'],                                    // ✅ matches fetch key
+      ['client-chat'],                                
       (old: any[] = []) => {
         // Avoid duplicates
         if (old.find((m) => m.id === msg.id)) return old;

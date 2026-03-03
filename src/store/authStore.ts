@@ -1,58 +1,5 @@
-// import { create } from 'zustand';
-// import { persist } from 'zustand/middleware';
-
-// export type UserRole = 'physiotherapist' | 'client';
-// export type VettingStatus = 'pending' | 'approved' | 'rejected';
-
-// export interface User {
-//   id: string;
-//   name: string;
-//   email: string;
-//   role: UserRole;
-//   avatar?: string;
-//   vettingStatus?: VettingStatus;
-//   isSubscribed?: boolean;
-//   coins?: number;
-//   activationCode?: string;
-// }
-
-// interface AuthState {
-//   user: User | null;
-//   token: string | null;
-//   isAuthenticated: boolean;
-//   login: (user: User, token: string) => void;
-//   logout: () => void;
-//   updateUser: (updates: Partial<User>) => void;
-//   addCoins: (amount: number) => void;
-// }
-
-// export const useAuthStore = create<AuthState>()(
-//   persist(
-//     (set) => ({
-//       user: null,
-//       token: null,
-//       isAuthenticated: false,
-//       login: (user, token) => set({ user, token, isAuthenticated: true }),
-//       logout: () => set({ user: null, token: null, isAuthenticated: false }),
-//       updateUser: (updates) =>
-//         set((state) => ({
-//           user: state.user ? { ...state.user, ...updates } : null,
-//         })),
-//       addCoins: (amount) =>
-//         set((state) => ({
-//           user: state.user
-//             ? { ...state.user, coins: (state.user.coins || 0) + amount }
-//             : null,
-//         })),
-//     }),
-//     { name: 'rehbox-auth' }
-//   )
-// );
-
-
-
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 interface AuthUser {
   id: number;
@@ -77,12 +24,12 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      user: null,
+      user:  null,
       token: null,
 
       setAuth: (user, token) => {
-        localStorage.setItem('rehbox_token', token);
         set({ user, token });
+        // ✅ No more manual localStorage.setItem — persist handles it
       },
 
       updateUser: (updates) =>
@@ -91,14 +38,15 @@ export const useAuthStore = create<AuthState>()(
         })),
 
       logout: () => {
-        localStorage.removeItem('rehbox-auth');
         set({ user: null, token: null });
+        // ✅ Persist middleware clears sessionStorage automatically
       },
 
       isAuthenticated: () => !!get().token && !!get().user,
     }),
     {
-      name: 'rehbox-auth',
+      name:    'rehbox-auth',
+      storage: createJSONStorage(() => sessionStorage), // ← tab-isolated
       partialize: (state) => ({ user: state.user, token: state.token }),
     }
   )

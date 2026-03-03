@@ -135,9 +135,11 @@ const NotificationToggle = () => {
 ============================ */
 
 const Profile = () => {
-  const { user } = useAuthStore();
+  const { user } = useAuthStore((s) => s);
   const { data, isLoading } = useClientProfile();
   const updateProfile = useUpdateClientProfile();
+  const isClient = user?.role === 'client';
+
 
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "" });
