@@ -29,7 +29,7 @@ import ExerciseSession from "@/features/client-dashboard/pages/ExerciseSession";
 import Progress from "@/features/client-dashboard/pages/Progress";
 import Rewards from "@/features/client-dashboard/pages/Rewards";
 import ClientShop from "@/features/client-dashboard/pages/Shop";
-import QandA from "@/features/client-dashboard/pages/QandA";
+import Chat from "@/features/client-dashboard/pages/Chat";
 import Reminders from "@/features/client-dashboard/pages/Reminders";
 import ClientProfile from "@/features/client-dashboard/pages/Profile";
 
@@ -73,7 +73,7 @@ const AppRouter = () => (
         <Route path="progress" element={<Progress />} />
         <Route path="rewards" element={<Rewards />} />
         <Route path="shop" element={<ClientShop />} />
-        <Route path="chat" element={<QandA />} />
+        <Route path="chat" element={<Chat />} />
         <Route path="reminders" element={<Reminders />} />
         <Route path="profile" element={<ClientProfile />} />
       </Route>

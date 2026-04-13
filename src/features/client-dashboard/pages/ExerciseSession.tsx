@@ -7,6 +7,7 @@ import api from '@/lib/api';
 import { CameraTracker } from '../components/CameraTracker';
 import { useMotionTracking } from '../hooks/useMotionTracking';
 import { useMyPlan } from '../hooks/useMyPlan';
+import VideoPlayer from '@/features/shared/components/VideoPlayer';
 
 type Phase = 'intro' | 'active' | 'complete';
 
@@ -19,14 +20,24 @@ const ExerciseSession = () => {
   const [cameraOn, setCameraOn]     = useState(false);
   const [elapsed, setElapsed]       = useState(0);
 
-  const { processResults, formScore, feedback, getMotionData, reset } = useMotionTracking();
   const { data: planData } = useMyPlan();
 
-  // Find the exercise from the active plan
-  const exercise = planData?.plan?.exercises?.find(
-    (ex: any) => ex.id === parseInt(exerciseId ?? '0')
+  // Find the exercise across all plans (start button only appears on active plans)
+  const targetId = parseInt(exerciseId ?? '0');
+  let exercise: any = null;
+  let planId: number | null = null;
+  for (const plan of (planData?.plans ?? [])) {
+    const found = plan.exercises?.find((ex: any) => ex.id === targetId);
+    if (found) {
+      exercise = found;
+      planId   = plan.id;
+      break;
+    }
+  }
+
+  const { processResults, formScore, feedback, repCount, lastROM, getMotionData, reset } = useMotionTracking(
+    exercise?.correct_angles ?? undefined,
   );
-  const planId = planData?.plan?.id;
 
   // Timer during active phase
   useEffect(() => {
@@ -50,7 +61,7 @@ const ExerciseSession = () => {
     onError: () => toast.error('Could not start session. Try again.'),
   });
 
-  // Complete session API call
+  // Complete session API call — transition is optimistic (instant), save runs in background
   const completeMutation = useMutation({
     mutationFn: () => {
       const motionData = getMotionData();
@@ -61,12 +72,17 @@ const ExerciseSession = () => {
       });
     },
     onSuccess: ({ data }) => {
-      setCameraOn(false);
-      setPhase('complete');
       toast.success(`+${data.coins_earned} coins earned! 🪙`);
     },
-    onError: () => toast.error('Could not save session. Try again.'),
+    onError: () => toast.error('Session data could not be saved — your progress was still recorded.'),
   });
+
+  const handleComplete = () => {
+    // Stop camera and show results immediately — don't wait for the API
+    setCameraOn(false);
+    setPhase('complete');
+    completeMutation.mutate();
+  };
 
   const formatTime = (s: number) =>
     `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
@@ -185,10 +201,9 @@ const ExerciseSession = () => {
         {/* Split view — video instruction + camera */}
         <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-2 p-2">
           {/* Left: exercise video or illustration */}
-          <div className="bg-gray-900 rounded-2xl overflow-hidden flex items-center justify-center">
+          <div className="rounded-2xl overflow-hidden flex items-center justify-center" style={{ background: '#0F2557' }}>
             {exercise.video_url
-              ? <video src={exercise.video_url} autoPlay loop muted
-                  className="w-full h-full object-cover" />
+              ? <VideoPlayer src={exercise.video_url} className="w-full h-full rounded-none" />
               : <div className="text-center text-white p-8">
                   <div className="text-7xl mb-4">🏃</div>
                   <p className="font-semibold">{exercise.title}</p>
@@ -205,19 +220,32 @@ const ExerciseSession = () => {
             <div className="absolute top-3 left-3 bg-black/70 rounded-xl px-3 py-2">
               <p className="text-white text-xs font-semibold">Form Score</p>
               <p className={`font-display font-bold text-lg ${
-                formScore >= 80 ? 'text-green-400'
-                : formScore >= 50 ? 'text-yellow-400'
-                : 'text-red-400'
+                formScore >= 80 ? 'text-success'
+                : formScore >= 50 ? 'text-warning'
+                : 'text-destructive'
               }`}>
                 {formScore}%
               </p>
             </div>
+
+            {/* Rep counter + ROM overlay (only shown when exercise has rep tracking) */}
+            {exercise?.correct_angles?.some((r: any) => r.rep_joint) && (
+              <div className="absolute top-3 right-3 bg-black/70 rounded-xl px-3 py-2 text-right">
+                <p className="text-white text-xs font-semibold">Reps</p>
+                <p className="font-display font-bold text-lg text-white">{repCount}</p>
+                {lastROM && (
+                  <p className="text-white/60 text-xs">
+                    {lastROM.min.toFixed(0)}°–{lastROM.max.toFixed(0)}°
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
         {/* AI feedback bar */}
         {feedback && (
-          <div className="mx-2 mb-2 bg-[#E8358A]/90 rounded-xl px-4 py-3 text-white text-sm font-medium text-center">
+          <div className="mx-2 mb-2 rounded-xl px-4 py-3 text-white text-sm font-medium text-center" style={{ background: 'rgba(229, 25, 125, 0.90)' }}>
             {feedback}
           </div>
         )}
@@ -225,11 +253,10 @@ const ExerciseSession = () => {
         {/* Complete button */}
         <div className="p-4">
           <button
-            onClick={() => completeMutation.mutate()}
-            disabled={completeMutation.isPending}
-            className="w-full bg-success text-white font-bold py-4 rounded-2xl hover:opacity-90 transition disabled:opacity-50 text-lg"
+            onClick={handleComplete}
+            className="w-full bg-success text-white font-bold py-4 rounded-2xl hover:opacity-90 transition text-lg"
           >
-            {completeMutation.isPending ? 'Saving...' : '✅ Complete Session'}
+            ✅ Complete Session
           </button>
         </div>
       </div>
@@ -247,15 +274,18 @@ const ExerciseSession = () => {
         </p>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className={`grid gap-3 mb-6 ${repCount > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
           {[
-            { label: 'Time', value: formatTime(elapsed) },
+            { label: 'Time',  value: formatTime(elapsed) },
             { label: 'Form',  value: `${formScore}%` },
+            ...(repCount > 0
+              ? [{ label: 'Reps', value: String(repCount) + (lastROM ? ` · ${lastROM.min.toFixed(0)}–${lastROM.max.toFixed(0)}°` : '') }]
+              : []),
             { label: 'Coins', value: formScore >= 80 ? '+3 🪙' : formScore >= 50 ? '+2 🪙' : '+1 🪙' },
           ].map((s) => (
             <div key={s.label} className="bg-muted rounded-xl p-3">
-              <p className="font-display font-bold text-lg">{s.value}</p>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
+              <p className="font-display font-bold text-base leading-tight">{s.value}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
             </div>
           ))}
         </div>

@@ -47,11 +47,11 @@ export function CameraTracker({ onResults, isActive }: Props) {
 
       if (results.poseLandmarks) {
         drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
-          color: '#E8358A',
+          color: '#E5197D',
           lineWidth: 2,
         });
         drawLandmarks(ctx, results.poseLandmarks, {
-          color: '#2C5FC3',
+          color: '#1B3E8F',
           lineWidth: 1,
           radius: 4,
         });

@@ -49,7 +49,7 @@ const PTLayout = () => {
       {/* User */}
       {sidebarOpen && (
         <div className="px-4 py-4 border-b border-sidebar-border">
-          <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'hsl(237 20% 22%)' }}>
+          <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'hsl(var(--sidebar-accent))' }}>
             <img src={pt.avatar} alt={pt.name} className="w-10 h-10 rounded-full object-cover" />
             <div className="flex-1 min-w-0">
               <p className="text-white text-sm font-semibold truncate">{pt.name}</p>

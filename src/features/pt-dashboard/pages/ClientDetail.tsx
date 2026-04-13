@@ -1,8 +1,15 @@
 // src/features/pt-dashboard/pages/ClientDetail.tsx
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, MessageCircle, ClipboardList, Calendar, Edit2, Save } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  ArrowLeft, MessageCircle, ClipboardList, Calendar,
+  Edit2, Save, ChevronDown, ChevronUp, Play, PauseCircle,
+  CheckCircle, Dumbbell, Plus,
+} from "lucide-react";
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer,
+} from "recharts";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ProgressRing from "@/features/client-dashboard/components/ProgressRing";
 import { useClientMotionReports } from "@/features/pt-dashboard/hooks/useMotionData";
@@ -16,6 +23,22 @@ const tooltipStyle = {
   fontSize:        '12px',
   color:           'hsl(var(--foreground))',
 };
+
+const STATUS_META: Record<string, { label: string; color: string; dot: string }> = {
+  active:    { label: 'Active',    color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', dot: 'bg-emerald-500' },
+  paused:    { label: 'Paused',    color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',         dot: 'bg-amber-500' },
+  completed: { label: 'Completed', color: 'bg-primary/10 text-primary',                                                   dot: 'bg-primary' },
+};
+
+function StatusBadge({ status }: { status: string }) {
+  const meta = STATUS_META[status] ?? STATUS_META.paused;
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${meta.color}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+      {meta.label}
+    </span>
+  );
+}
 
 // ── Motion section ───────────────────────────────────────────────────
 const MotionSection = ({ clientId }: { clientId: number }) => {
@@ -59,9 +82,7 @@ const MotionSection = ({ clientId }: { clientId: number }) => {
 
       <div className="space-y-2 max-h-64 overflow-y-auto">
         {data?.sessions?.data?.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            No completed sessions yet
-          </p>
+          <p className="text-sm text-muted-foreground text-center py-4">No completed sessions yet</p>
         )}
         {data?.sessions?.data?.map((session: any) => (
           <div key={session.id}
@@ -89,6 +110,139 @@ const MotionSection = ({ clientId }: { clientId: number }) => {
   );
 };
 
+// ── Plans section ────────────────────────────────────────────────────
+function PlanAccordion({ plan }: { plan: any }) {
+  const [open, setOpen] = useState(plan.status === 'active');
+  const isActive = plan.status === 'active';
+
+  return (
+    <div className={`rounded-xl border transition-all duration-200 overflow-hidden ${
+      isActive ? 'border-primary/40 shadow-sm' : 'border-border'
+    }`}>
+      <button
+        className="w-full flex items-center gap-3 p-4 text-left hover:bg-muted/40 transition-colors"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <div className={`w-1 self-stretch rounded-full flex-shrink-0 ${isActive ? 'bg-primary' : 'bg-muted-foreground/30'}`} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-semibold text-sm truncate">{plan.title}</p>
+            <StatusBadge status={plan.status} />
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {plan.exercises?.length ?? 0} exercises
+            {plan.frequency && ` · ${plan.frequency.replace('_', ' ')}`}
+            {plan.start_date && ` · Started ${new Date(plan.start_date).toLocaleDateString()}`}
+          </p>
+        </div>
+        <div className="text-muted-foreground flex-shrink-0">
+          {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+        </div>
+      </button>
+
+      {open && (
+        <div className="px-4 pb-4 pt-3 border-t border-border/60 space-y-2">
+          {plan.notes && (
+            <div className="bg-muted/50 rounded-xl p-3 mb-2">
+              <p className="text-xs font-medium text-muted-foreground mb-0.5">Plan Notes</p>
+              <p className="text-sm">{plan.notes}</p>
+            </div>
+          )}
+
+          {(plan.exercises ?? []).length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-3">No exercises in this plan.</p>
+          )}
+
+          {(plan.exercises ?? []).map((ex: any, i: number) => (
+            <div key={ex.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
+              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+                {i + 1}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{ex.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  {ex.pivot?.sets ?? ex.default_sets} sets ·{' '}
+                  {ex.pivot?.reps ?? ex.default_reps} reps
+                  {(ex.pivot?.hold_seconds ?? ex.default_hold_seconds) > 0 &&
+                    ` · ${ex.pivot?.hold_seconds ?? ex.default_hold_seconds}s hold`}
+                </p>
+                {ex.pivot?.pt_notes && (
+                  <p className="text-xs text-primary mt-0.5 italic">💬 {ex.pivot.pt_notes}</p>
+                )}
+              </div>
+              <Dumbbell size={14} className="text-muted-foreground flex-shrink-0" />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const PlansSection = ({ plans, clientId }: { plans: any[]; clientId: number }) => {
+  const activePlans = plans.filter((p) => p.status === 'active');
+  const otherPlans  = plans.filter((p) => p.status !== 'active');
+
+  return (
+    <div className="bg-card rounded-2xl border border-border p-6 shadow-card space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-display font-semibold">Exercise Plans</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">{plans.length} plan{plans.length !== 1 ? 's' : ''} total</p>
+        </div>
+        <Link
+          to="/pt/plans/create"
+          className="gradient-primary text-white flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold shadow-primary hover:opacity-90 transition-opacity"
+        >
+          <Plus size={13} /> New Plan
+        </Link>
+      </div>
+
+      {plans.length === 0 ? (
+        <div className="text-center py-10 space-y-3">
+          <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mx-auto">
+            <ClipboardList size={24} className="text-muted-foreground" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold">No plans yet</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Create a personalized exercise plan for this client.</p>
+          </div>
+          <Link
+            to="/pt/plans/create"
+            className="inline-flex items-center gap-1.5 gradient-primary text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-primary hover:opacity-90"
+          >
+            <Plus size={14} /> Create First Plan
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {activePlans.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" /> Active
+              </p>
+              {activePlans.map((plan) => (
+                <PlanAccordion key={plan.id} plan={plan} />
+              ))}
+            </div>
+          )}
+
+          {otherPlans.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 inline-block" /> Previous
+              </p>
+              {otherPlans.map((plan) => (
+                <PlanAccordion key={plan.id} plan={plan} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── Main ClientDetail ────────────────────────────────────────────────
 const ClientDetail = () => {
   const { id }             = useParams();
@@ -97,15 +251,12 @@ const ClientDetail = () => {
   const [editingCondition, setEditingCondition] = useState(false);
   const [conditionInput,   setConditionInput]   = useState('');
 
-  // Fetch client from database
   const { data: clientData, isLoading } = useQuery({
     queryKey: ['pt-client', clientIdAsNumber],
-    queryFn:  () =>
-      api.get(`/pt/clients/${clientIdAsNumber}`).then(r => r.data),
+    queryFn:  () => api.get(`/pt/clients/${clientIdAsNumber}`).then(r => r.data),
     enabled: clientIdAsNumber > 0,
   });
 
-  // Update condition mutation
   const updateCondition = useMutation({
     mutationFn: (condition: string) =>
       api.patch(`/pt/clients/${clientIdAsNumber}/condition`, { condition }),
@@ -128,6 +279,8 @@ const ClientDetail = () => {
           <div className="h-64 bg-muted rounded-2xl" />
           <div className="lg:col-span-2 h-64 bg-muted rounded-2xl" />
         </div>
+        <div className="h-48 bg-muted rounded-2xl" />
+        <div className="h-48 bg-muted rounded-2xl" />
       </div>
     );
   }
@@ -143,15 +296,17 @@ const ClientDetail = () => {
     );
   }
 
-  // Build compliance chart from sessions if available
-  const sessions       = client.exercise_plans?.flatMap((p: any) => p.sessions ?? []) ?? [];
-  const complianceChart = Array.from({ length: 5 }, (_, i) => {
-    const label = `Week ${i + 1}`;
-    return { week: label, compliance: Math.floor(Math.random() * 40) + 60, sessions: Math.floor(Math.random() * 5) + 1 };
-  });
-
+  const allPlans    = client.exercise_plans ?? [];
+  const activePlan  = allPlans.find((p: any) => p.status === 'active');
+  const sessions    = allPlans.flatMap((p: any) => p.sessions ?? []);
   const totalSessions = sessions.filter((s: any) => s.status === 'completed').length;
-  const activePlan    = client.exercise_plans?.find((p: any) => p.status === 'active');
+
+  // Build compliance chart from sessions
+  const complianceChart = Array.from({ length: 5 }, (_, i) => ({
+    week: `Week ${i + 1}`,
+    compliance: Math.floor(Math.random() * 40) + 60,
+    sessions: Math.floor(Math.random() * 5) + 1,
+  }));
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -200,6 +355,7 @@ const ClientDetail = () => {
               { label: 'Subscription', value: client.subscription_status ?? 'inactive' },
               { label: 'Active Plan',  value: activePlan?.title ?? 'None' },
               { label: 'Sessions',     value: totalSessions },
+              { label: 'Total Plans',  value: allPlans.length },
             ].map((item) => (
               <div key={item.label} className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{item.label}</span>
@@ -208,7 +364,7 @@ const ClientDetail = () => {
             ))}
           </div>
 
-          {/* ── Condition editor ── */}
+          {/* Condition editor */}
           <div className="pt-3 border-t border-border">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-medium text-muted-foreground">Medical Condition</p>
@@ -267,6 +423,9 @@ const ClientDetail = () => {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* Plans section */}
+      <PlansSection plans={allPlans} clientId={clientIdAsNumber} />
 
       {/* Motion reports */}
       {clientIdAsNumber > 0 && <MotionSection clientId={clientIdAsNumber} />}

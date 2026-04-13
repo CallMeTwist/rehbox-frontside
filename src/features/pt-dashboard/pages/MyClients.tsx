@@ -69,10 +69,12 @@
 
 
 // src/features/pt-dashboard/pages/MyClients.tsx
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useClients } from '../hooks/useClients';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChevronRight, Users } from 'lucide-react';
+import { ChevronRight, Users, Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 const ComplianceBadge = ({ rate }: { rate: number }) => (
   <span
@@ -88,29 +90,66 @@ const ComplianceBadge = ({ rate }: { rate: number }) => (
   </span>
 );
 
+const FILTERS = [
+  { label: 'All',      value: 'all' },
+  { label: 'Active',   value: 'active' },
+  { label: 'Inactive', value: 'inactive' },
+];
+
 const MyClients = () => {
   const { data, isLoading } = useClients();
-  const clients    = data?.clients ?? [];
-  const slotsLeft  = data?.slots_remaining ?? 5;
+  const allClients = data?.clients ?? [];
+
+  const [search, setSearch]       = useState('');
+  const [filter, setFilter]       = useState('all');
+
+  const clients = allClients.filter((c: any) => {
+    const matchSearch =
+      !search ||
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      (c.primary_condition ?? '').toLowerCase().includes(search.toLowerCase());
+
+    const matchFilter =
+      filter === 'all' ||
+      (filter === 'active'   && c.subscription_status === 'active') ||
+      (filter === 'inactive' && c.subscription_status !== 'active');
+
+    return matchSearch && matchFilter;
+  });
 
   return (
-    <div className="space-y-6 animate-slide-up">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display font-bold text-2xl">My Clients</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {clients.length}/5 slots used · {slotsLeft} remaining
-          </p>
+    <div className="space-y-5 animate-slide-up">
+      <div>
+        <h1 className="font-display font-bold text-2xl">My Clients</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          {allClients.length} {allClients.length === 1 ? 'client' : 'clients'} total
+        </p>
+      </div>
+
+      {/* Search + filter */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search by name or condition…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
         </div>
-        {/* Slot indicator */}
-        <div className="flex gap-1.5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div
-              key={i}
-              className={`w-3 h-3 rounded-full ${
-                i < clients.length ? 'bg-primary' : 'bg-muted'
+        <div className="flex gap-2">
+          {FILTERS.map((f) => (
+            <button
+              key={f.value}
+              onClick={() => setFilter(f.value)}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                filter === f.value
+                  ? 'bg-primary text-white shadow-primary'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
               }`}
-            />
+            >
+              {f.label}
+            </button>
           ))}
         </div>
       </div>
@@ -121,7 +160,7 @@ const MyClients = () => {
             <Skeleton key={i} className="h-20 rounded-2xl" />
           ))}
         </div>
-      ) : clients.length === 0 ? (
+      ) : allClients.length === 0 ? (
         <div className="bg-card rounded-2xl border border-border p-12 text-center">
           <Users className="mx-auto mb-3 text-muted-foreground" size={40} />
           <p className="font-semibold">No clients yet</p>
@@ -135,6 +174,11 @@ const MyClients = () => {
             View My Code
           </Link>
         </div>
+      ) : clients.length === 0 ? (
+        <div className="bg-card rounded-2xl border border-border p-10 text-center text-muted-foreground">
+          <p className="text-3xl mb-2">🔍</p>
+          <p className="text-sm">No clients match your search.</p>
+        </div>
       ) : (
         <div className="bg-card rounded-2xl border border-border divide-y divide-border">
           {clients.map((client: any) => (
@@ -143,14 +187,20 @@ const MyClients = () => {
               to={`/pt/clients/${client.id}`}
               className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors group"
             >
-              {/* Avatar placeholder */}
               <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-sm flex-shrink-0">
                 {client.name.charAt(0).toUpperCase()}
               </div>
 
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm">{client.name}</p>
-                <p className="text-xs text-muted-foreground truncate">
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-sm">{client.name}</p>
+                  {client.subscription_status === 'active' ? (
+                    <span className="text-xs bg-success/10 text-success px-1.5 py-0.5 rounded-full font-medium">Active</span>
+                  ) : (
+                    <span className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full font-medium">Inactive</span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground truncate mt-0.5">
                   {client.primary_condition ?? 'No condition listed'} ·{' '}
                   {client.active_plan_title ?? 'No active plan'}
                 </p>

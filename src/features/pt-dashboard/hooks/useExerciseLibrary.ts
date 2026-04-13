@@ -1,14 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
-import { mockExercises } from "@/mock/data";
-
 // src/features/pt-dashboard/hooks/useExerciseLibrary.ts
+import { useQuery } from "@tanstack/react-query";
 import { useState } from 'react';
 import api from '@/lib/api';
 
 export interface Exercise {
   id: number;
   title: string;
-  category: 'head_neck' | 'upper_limb' | 'back' | 'lower_limb';
+  area: 'neck' | 'shoulder' | 'elbow_forearm_wrist' | 'back' | 'lower_limb';
+  category: 'strengthening' | 'stretching' | 'rom' | 'functional' | 'endurance';
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   description?: string;
   video_url?: string;
@@ -20,23 +19,25 @@ export interface Exercise {
 }
 
 export function useExerciseLibrary() {
-  const [category, setCategory] = useState('');
-  const [search, setSearch]     = useState('');
+  const [area, setArea]           = useState('');
+  const [category, setCategory]   = useState('');
+  const [search, setSearch]       = useState('');
   const [difficulty, setDifficulty] = useState('');
 
   const { data, isLoading } = useQuery({
-    queryKey: ['exercises', category, search, difficulty],
+    queryKey: ['exercises', area, category, search, difficulty],
     queryFn: () =>
       api.get('/pt/exercises', {
-        params: { category, search, difficulty },
+        params: { area, category, search, difficulty },
       }).then((r) => r.data),
   });
 
   return {
-    exercises: data?.data ?? [],
+    exercises: (data?.data ?? []) as Exercise[],
     isLoading,
-    category, setCategory,
-    search, setSearch,
+    area,       setArea,
+    category,   setCategory,
+    search,     setSearch,
     difficulty, setDifficulty,
   };
 }

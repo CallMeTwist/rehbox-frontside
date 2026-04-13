@@ -6,10 +6,10 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useUIStore } from "@/store/uiStore";
+import { useOnlineUsers } from "@/features/shared/hooks/useOnlineUsers";
 import NotificationBell from "@/features/shared/components/NotificationBell";
 import LanguageSelector from "@/features/client-dashboard/components/LanguageSelector";
 import CoinWallet from "@/features/client-dashboard/components/CoinWallet";
-import { mockClient } from "@/mock/data";
 import { InstallPrompt } from "./InstallPrompt";
 
 const navItems = [
@@ -18,7 +18,7 @@ const navItems = [
   { to: "/client/progress", icon: TrendingUp, label: "Progress" },
   { to: "/client/rewards", icon: Gift, label: "Rewards" },
   { to: "/client/shop", icon: ShoppingBag, label: "Shop" },
-  { to: "/client/chat", icon: MessageCircle, label: "Q&A" },
+  { to: "/client/chat", icon: MessageCircle, label: "Chat" },
   { to: "/client/reminders", icon: Clock, label: "Reminders" },
   { to: "/client/profile", icon: User, label: "Profile" },
 ];
@@ -29,9 +29,11 @@ const ClientLayout = () => {
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== "client") return <Navigate to="/" replace />;
 
+  // Joining the presence channel here ensures the PT can see this client as online
+  useOnlineUsers();
+
   const { sidebarOpen, toggleSidebar } = useUIStore();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const client = user || mockClient;
 
   const handleLogout = () => { logout(); navigate("/login"); };
 
@@ -45,10 +47,12 @@ const ClientLayout = () => {
       </div>
       {sidebarOpen && (
         <div className="px-4 py-4 border-b border-sidebar-border">
-          <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'hsl(237 20% 22%)' }}>
-            <img src={client.avatar} alt={client.name} className="w-10 h-10 rounded-full object-cover" />
+          <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'hsl(var(--sidebar-accent))' }}>
+            <div className="w-10 h-10 rounded-full gradient-pink flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+              {user.name.charAt(0).toUpperCase()}
+            </div>
             <div className="flex-1 min-w-0">
-              <p className="text-white text-sm font-semibold truncate">{client.name}</p>
+              <p className="text-white text-sm font-semibold truncate">{user.name}</p>
               <p className="text-sidebar-foreground text-xs">Patient</p>
             </div>
           </div>
@@ -64,7 +68,7 @@ const ClientLayout = () => {
         ))}
       </nav>
       <div className="px-3 py-4 border-t border-sidebar-border">
-        {sidebarOpen && <div className="coin-badge mb-3 w-full justify-center"><span>🪙</span><span>{(client.coins || 0).toLocaleString()} coins</span></div>}
+        {sidebarOpen && <div className="coin-badge mb-3 w-full justify-center"><span>🪙</span><span>{(user.coin_balance || 0).toLocaleString()} coins</span></div>}
         <button onClick={handleLogout} className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-sidebar-foreground hover:bg-destructive/20 hover:text-destructive transition-colors">
           <LogOut size={18} />{sidebarOpen && <span>Logout</span>}
         </button>
@@ -93,9 +97,11 @@ const ClientLayout = () => {
           </div>
           <div className="flex items-center gap-3">
             <LanguageSelector />
-            <CoinWallet coins={client.coins || 0} />
+            <CoinWallet coins={user.coin_balance || 0} />
             <NotificationBell />
-            <img src={client.avatar} alt={client.name} className="w-8 h-8 rounded-full object-cover border-2 border-border" />
+            <div className="w-8 h-8 rounded-full gradient-pink flex items-center justify-center text-white font-bold text-xs border-2 border-border">
+              {user.name.charAt(0).toUpperCase()}
+            </div>
           </div>
         </header>
         <main className="flex-1 overflow-y-auto p-4 md:p-6"><Outlet /></main>

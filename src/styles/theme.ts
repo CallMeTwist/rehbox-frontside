@@ -2,10 +2,17 @@
 // These complement the CSS custom properties defined in index.css
 
 export const brandColors = {
-  primary: '#2C5FC3',
-  hotPink: '#E8358A',
-  dark: '#1A1A2E',
-  white: '#FFFFFF',
+  primary:      '#1B3E8F',
+  primaryMid:   '#2C5FC3',
+  primaryDark:  '#0F2557',
+  primaryLight: '#E8EEFF',
+  hotPink:      '#E5197D',
+  hotPinkSoft:  '#FF6BB5',
+  hotPinkDeep:  '#C4006A',
+  coin:         '#F4A100',
+  dark:         '#0F2557',
+  white:        '#FFFFFF',
+  offWhite:     '#F4F7FF',
 } as const;
 
 export const chartColors = {

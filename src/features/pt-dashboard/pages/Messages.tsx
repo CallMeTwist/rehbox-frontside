@@ -4,67 +4,91 @@ import { Send } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
-import { useChatSocket } from "@/features/shared/hooks/useWebSocket";
 import { useOnlineUsers } from "@/features/shared/hooks/useOnlineUsers";
+import getEcho, { hasEcho } from "@/features/shared/utils/echo";
 
 const Messages = () => {
   const { user } = useAuthStore();
-  const qc  = useQueryClient();
+  const token    = useAuthStore((s) => s.token);
+  const qc       = useQueryClient();
+
   const [selectedClient, setSelectedClient] = useState<any>(null);
-  const [input, setInput] = useState("");
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const { isOnline } = useOnlineUsers();
+  const [input, setInput]                   = useState("");
+  const bottomRef                           = useRef<HTMLDivElement>(null);
+  const { isOnline }                        = useOnlineUsers();
 
-  // Fetch PT's clients
+  // Track the previous subscribed channel so cleanup always targets the right one
+  const subscribedChannelRef = useRef<string | null>(null);
+
+  // Fetch PT's clients — uses a separate query key from MyClients to avoid cache collision
   const { data: clientsData, isLoading: clientsLoading } = useQuery({
-  queryKey: ['pt-clients'],
-  queryFn:  () => api.get('/pt/clients').then(r => {
-    const d = r.data;
-    // Handle both { clients: [] } and raw []
-    return Array.isArray(d) ? d : (d.clients ?? []);
-  }),
-});
+    queryKey: ['pt-clients-chat'],
+    queryFn: () =>
+      api.get('/pt/clients').then((r) => {
+        const d = r.data;
+        return Array.isArray(d) ? d : (d.clients ?? []);
+      }),
+  });
 
-const clients = Array.isArray(clientsData) ? clientsData : [];
+  const clients = Array.isArray(clientsData) ? clientsData : [];
 
-  // Auto-select first client
+  // Auto-select first client on load
   useEffect(() => {
     if (clients.length > 0 && !selectedClient) {
       setSelectedClient(clients[0]);
     }
   }, [clients]);
 
-  // Fetch messages for selected client
+  // Fetch messages for the selected client
   const { data: messagesData } = useQuery({
-    queryKey:  ['pt-messages', selectedClient?.id],
-    queryFn:   () =>
-      api.get('/pt/chat', { params: { client_id: selectedClient.id } })
-         .then(r => r.data.messages ?? []),
-    enabled:         !!selectedClient,
+    queryKey: ['pt-messages', selectedClient?.id],
+    queryFn: () =>
+      api
+        .get('/pt/chat', { params: { client_id: selectedClient.id } })
+        .then((r) => r.data.messages ?? []),
+    enabled: !!selectedClient,
     refetchInterval: false,
   });
 
   const messages = messagesData ?? [];
 
-  // Real-time incoming messages
-  useChatSocket((msg: any) => {
-  if (msg.client_id === selectedClient?.id) {
-    qc.setQueryData(
-      ['pt-messages', selectedClient.id],    
-      (old: any[] = []) => {
-        if (old.find((m: any) => m.id === msg.id)) return old;
-        return [...old, msg];
-      }
-    );
-  }
-});;
+  // Real-time chat subscription — one private channel per selected client
+  useEffect(() => {
+    if (!selectedClient || !token) return;
 
-  // Scroll to bottom
+    const channelName = `chat.${selectedClient.id}`;
+    subscribedChannelRef.current = channelName;
+
+    try {
+      const channel = getEcho().private(channelName);
+      channel.listen('.message.sent', (msg: any) => {
+        qc.setQueryData(
+          ['pt-messages', selectedClient.id],
+          (old: any[] = []) => {
+            if (old.find((m: any) => m.id === msg.id)) return old;
+            return [...old, msg];
+          }
+        );
+      });
+    } catch (err) {
+      console.warn('PT chat socket error:', err);
+    }
+
+    return () => {
+      // Guard: only leave if Echo is alive to avoid recreating it with a stale token
+      try {
+        if (hasEcho()) getEcho().leaveChannel(channelName);
+      } catch {}
+      subscribedChannelRef.current = null;
+    };
+  }, [selectedClient?.id, token]);
+
+  // Scroll to bottom when messages change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Send message
+  // Send a message
   const sendMutation = useMutation({
     mutationFn: () =>
       api.post('/pt/chat', {
@@ -97,7 +121,7 @@ const clients = Array.isArray(clientsData) ? clientsData : [];
         <div className="flex-1 overflow-y-auto">
           {clientsLoading ? (
             <div className="p-4 space-y-3">
-              {[1,2,3].map(i => (
+              {[1, 2, 3].map((i) => (
                 <div key={i} className="h-12 bg-muted rounded-xl animate-pulse" />
               ))}
             </div>
@@ -112,21 +136,25 @@ const clients = Array.isArray(clientsData) ? clientsData : [];
                 key={c.id}
                 onClick={() => setSelectedClient(c)}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/50 transition-colors ${
-                  selectedClient?.id === c.id ? "bg-primary/5 border-l-2 border-primary" : ""
+                  selectedClient?.id === c.id
+                    ? 'bg-primary/5 border-l-2 border-primary'
+                    : ''
                 }`}
               >
                 <div className="relative flex-shrink-0">
                   <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-white text-xs font-bold">
                     {c.name.charAt(0).toUpperCase()}
                   </div>
-                  <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${
-                    isOnline(c.user_id) ? 'bg-success' : 'bg-muted-foreground'
-                  }`} />
+                  <span
+                    className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${
+                      isOnline(c.user_id) ? 'bg-success' : 'bg-muted-foreground'
+                    }`}
+                  />
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold truncate">{c.name}</p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {c.condition ?? 'No condition set'}
+                    {c.primary_condition ?? 'No condition set'}
                   </p>
                 </div>
               </button>
@@ -151,15 +179,19 @@ const clients = Array.isArray(clientsData) ? clientsData : [];
               <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center text-white font-bold">
                 {selectedClient.name.charAt(0).toUpperCase()}
               </div>
-              <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${
-                isOnline(selectedClient.user_id) ? 'bg-success' : 'bg-muted-foreground'
-              }`} />
+              <span
+                className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${
+                  isOnline(selectedClient.user_id) ? 'bg-success' : 'bg-muted-foreground'
+                }`}
+              />
             </div>
             <div>
               <p className="font-semibold text-sm">{selectedClient.name}</p>
-              <p className={`text-xs font-medium ${
-                isOnline(selectedClient.user_id) ? 'text-success' : 'text-muted-foreground'
-              }`}>
+              <p
+                className={`text-xs font-medium ${
+                  isOnline(selectedClient.user_id) ? 'text-success' : 'text-muted-foreground'
+                }`}
+              >
                 {isOnline(selectedClient.user_id) ? '● Online' : '○ Offline'}
               </p>
             </div>
@@ -175,16 +207,26 @@ const clients = Array.isArray(clientsData) ? clientsData : [];
             {messages.map((msg: any) => {
               const isOwn = msg.sender_id === user?.id;
               return (
-                <div key={msg.id} className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-xs md:max-w-sm rounded-2xl px-4 py-2.5 ${
-                    isOwn
-                      ? "gradient-primary text-white rounded-br-sm"
-                      : "bg-card border border-border rounded-bl-sm"
-                  }`}>
+                <div
+                  key={msg.id}
+                  className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-xs md:max-w-sm rounded-2xl px-4 py-2.5 ${
+                      isOwn
+                        ? 'gradient-primary text-white rounded-br-sm'
+                        : 'bg-card border border-border rounded-bl-sm'
+                    }`}
+                  >
                     <p className="text-sm">{msg.body}</p>
-                    <p className={`text-xs mt-1 ${isOwn ? "text-white/60" : "text-muted-foreground"}`}>
+                    <p
+                      className={`text-xs mt-1 ${
+                        isOwn ? 'text-white/60' : 'text-muted-foreground'
+                      }`}
+                    >
                       {new Date(msg.created_at).toLocaleTimeString([], {
-                        hour: '2-digit', minute: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
                       })}
                     </p>
                   </div>
@@ -200,7 +242,7 @@ const clients = Array.isArray(clientsData) ? clientsData : [];
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Type a message..."
               className="flex-1 px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
             />

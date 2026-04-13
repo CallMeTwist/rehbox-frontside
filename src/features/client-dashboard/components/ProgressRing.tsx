@@ -13,8 +13,8 @@ const ProgressRing = ({ value, size = 80, strokeWidth = 8, label, sublabel }: Pr
         <svg width={size} height={size} className="-rotate-90">
           <defs>
             <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="hsl(225, 63%, 47%)" />
-              <stop offset="100%" stopColor="hsl(328, 78%, 56%)" />
+              <stop offset="0%" stopColor="#1B3E8F" />
+              <stop offset="100%" stopColor="#E5197D" />
             </linearGradient>
           </defs>
           <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="hsl(var(--border))" strokeWidth={strokeWidth} />

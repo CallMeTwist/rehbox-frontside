@@ -72,12 +72,12 @@ const ClientSession = () => {
             {/* Skeleton overlay placeholder */}
             <div className="absolute inset-0 pointer-events-none">
               <svg viewBox="0 0 400 300" className="w-full h-full opacity-30">
-                <circle cx="200" cy="60" r="20" stroke="#2C5FC3" strokeWidth="3" fill="none" />
-                <line x1="200" y1="80" x2="200" y2="180" stroke="#2C5FC3" strokeWidth="3" />
-                <line x1="200" y1="110" x2="150" y2="150" stroke="#E8358A" strokeWidth="3" />
-                <line x1="200" y1="110" x2="250" y2="150" stroke="#E8358A" strokeWidth="3" />
-                <line x1="200" y1="180" x2="170" y2="250" stroke="#2C5FC3" strokeWidth="3" />
-                <line x1="200" y1="180" x2="230" y2="250" stroke="#2C5FC3" strokeWidth="3" />
+                <circle cx="200" cy="60" r="20" stroke="#1B3E8F" strokeWidth="3" fill="none" />
+                <line x1="200" y1="80" x2="200" y2="180" stroke="#1B3E8F" strokeWidth="3" />
+                <line x1="200" y1="110" x2="150" y2="150" stroke="#E5197D" strokeWidth="3" />
+                <line x1="200" y1="110" x2="250" y2="150" stroke="#E5197D" strokeWidth="3" />
+                <line x1="200" y1="180" x2="170" y2="250" stroke="#1B3E8F" strokeWidth="3" />
+                <line x1="200" y1="180" x2="230" y2="250" stroke="#1B3E8F" strokeWidth="3" />
               </svg>
             </div>
           </div>
