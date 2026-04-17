@@ -5,6 +5,7 @@ import { Send } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { useChatSocket } from '@/features/shared/hooks/useWebSocket';
+import { UpgradeLocked } from '@/features/shared/components/UpgradeLocked';
 
 const QandA = () => {
   const user  = useAuthStore((s) => s.user);
@@ -73,6 +74,14 @@ const QandA = () => {
     if (!text.trim() || sendMutation.isPending) return;
     sendMutation.mutate(text.trim());
   };
+
+  // ── Subscription gating ──
+  const subscriptionPlan = clientData?.client?.subscription_plan ?? 'basic';
+  const profileLoading = !clientData;
+
+  if (!profileLoading && subscriptionPlan === 'basic') {
+    return <UpgradeLocked feature="Chat with PT" />;
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
