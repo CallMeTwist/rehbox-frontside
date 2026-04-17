@@ -136,7 +136,7 @@ const CreatePlan = ({ editPlan }: CreatePlanProps = {}) => {
   const createPlanMutation = useMutation({
     mutationFn: () =>
       isEditing
-        ? api.patch(`/pt/plans/${editPlan.id}`, {
+        ? api.put(`/pt/plans/${editPlan.id}`, {
             title:     planName,
             frequency: selectedDays.length > 0 ? 'custom' : 'daily',
             notes: [
