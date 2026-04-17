@@ -1,5 +1,5 @@
 // src/features/pt-dashboard/pages/CreatePlan.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle, Minus, Plus } from "lucide-react";
@@ -49,17 +49,38 @@ const Stepper = ({
   </div>
 );
 
-const CreatePlan = () => {
-  const [planName, setPlanName]             = useState("");
-  const [selectedClient, setSelectedClient] = useState("");
+interface CreatePlanProps {
+  editPlan?: any;
+}
+
+const CreatePlan = ({ editPlan }: CreatePlanProps = {}) => {
+  const isEditing = !!editPlan;
+  const [planName, setPlanName]             = useState(editPlan?.title ?? "");
+  const [selectedClient, setSelectedClient] = useState(editPlan?.client_id?.toString() ?? "");
   const [selectedDays, setSelectedDays]     = useState<string[]>([]);
-  const [notes, setNotes]                   = useState("");
+  const [notes, setNotes]                   = useState(editPlan?.notes ?? "");
   const [submitted, setSubmitted]           = useState(false);
   const [createdPlanName, setCreatedPlanName]     = useState("");
   const [createdClientName, setCreatedClientName] = useState("");
 
   // Map of exercise id → override values
   const [overrides, setOverrides] = useState<Record<number, ExerciseOverride>>({});
+
+  // Pre-fill overrides when editing
+  useEffect(() => {
+    if (editPlan?.exercises) {
+      const initialOverrides: Record<number, ExerciseOverride> = {};
+      editPlan.exercises.forEach((ex: any) => {
+        initialOverrides[ex.id] = {
+          sets:         ex.pivot?.sets         ?? ex.default_sets         ?? 3,
+          reps:         ex.pivot?.reps         ?? ex.default_reps         ?? 10,
+          hold_seconds: ex.pivot?.hold_seconds ?? ex.default_hold_seconds ?? 0,
+          pt_notes:     ex.pivot?.pt_notes     ?? '',
+        };
+      });
+      setOverrides(initialOverrides);
+    }
+  }, [editPlan]);
 
   const selectedExerciseIds = Object.keys(overrides).map(Number);
 
@@ -114,35 +135,51 @@ const CreatePlan = () => {
 
   const createPlanMutation = useMutation({
     mutationFn: () =>
-      api.post('/pt/plans', {
-        client_id: parseInt(selectedClient),
-        title:     planName,
-        frequency: selectedDays.length > 0 ? 'custom' : 'daily',
-        notes: [
-          notes,
-          selectedDays.length > 0 ? `Session days: ${selectedDays.join(', ')}` : null,
-        ].filter(Boolean).join('\n') || null,
-        exercises: selectedExerciseIds.map((id) => ({
-          exercise_id:  id,
-          sets:         overrides[id].sets,
-          reps:         overrides[id].reps,
-          hold_seconds: overrides[id].hold_seconds,
-          pt_notes:     overrides[id].pt_notes || null,
-        })),
-      }),
+      isEditing
+        ? api.patch(`/pt/plans/${editPlan.id}`, {
+            title:     planName,
+            frequency: selectedDays.length > 0 ? 'custom' : 'daily',
+            notes: [
+              notes,
+              selectedDays.length > 0 ? `Session days: ${selectedDays.join(', ')}` : null,
+            ].filter(Boolean).join('\n') || null,
+            exercises: selectedExerciseIds.map((id) => ({
+              exercise_id:  id,
+              sets:         overrides[id].sets,
+              reps:         overrides[id].reps,
+              hold_seconds: overrides[id].hold_seconds,
+              pt_notes:     overrides[id].pt_notes || null,
+            })),
+          })
+        : api.post('/pt/plans', {
+            client_id: parseInt(selectedClient),
+            title:     planName,
+            frequency: selectedDays.length > 0 ? 'custom' : 'daily',
+            notes: [
+              notes,
+              selectedDays.length > 0 ? `Session days: ${selectedDays.join(', ')}` : null,
+            ].filter(Boolean).join('\n') || null,
+            exercises: selectedExerciseIds.map((id) => ({
+              exercise_id:  id,
+              sets:         overrides[id].sets,
+              reps:         overrides[id].reps,
+              hold_seconds: overrides[id].hold_seconds,
+              pt_notes:     overrides[id].pt_notes || null,
+            })),
+          }),
     onSuccess: () => {
       const client = clients.find((c: any) => c.id === parseInt(selectedClient));
       setCreatedPlanName(planName);
-      setCreatedClientName(client?.name ?? 'Client');
+      setCreatedClientName(client?.name ?? editPlan?.client?.name ?? 'Client');
       setSubmitted(true);
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message ?? 'Failed to create plan.');
+      toast.error(err?.response?.data?.message ?? 'Failed to save plan');
     },
   });
 
   const handleSubmit = () => {
-    if (!planName || !selectedClient || selectedExerciseIds.length === 0) {
+    if (!planName || (!isEditing && !selectedClient) || selectedExerciseIds.length === 0) {
       toast.error('Please fill in all required fields and select at least one exercise.');
       return;
     }
@@ -155,9 +192,9 @@ const CreatePlan = () => {
         <div className="w-20 h-20 rounded-2xl bg-success/20 flex items-center justify-center mb-6">
           <CheckCircle size={40} className="text-success" />
         </div>
-        <h2 className="font-display font-bold text-2xl mb-2">Plan Created!</h2>
+        <h2 className="font-display font-bold text-2xl mb-2">{isEditing ? 'Plan Updated!' : 'Plan Created!'}</h2>
         <p className="text-muted-foreground mb-6">
-          "{createdPlanName}" has been sent to {createdClientName}.
+          "{createdPlanName}" has been {isEditing ? 'updated for' : 'sent to'} {createdClientName}.
         </p>
         <button
           onClick={() => {
@@ -179,8 +216,8 @@ const CreatePlan = () => {
   return (
     <div className="space-y-6 animate-slide-up max-w-3xl">
       <div>
-        <h1 className="font-display font-bold text-2xl">Create Exercise Plan</h1>
-        <p className="text-muted-foreground text-sm mt-1">Build a personalised plan for your client.</p>
+        <h1 className="font-display font-bold text-2xl">{isEditing ? 'Edit Exercise Plan' : 'Create Exercise Plan'}</h1>
+        <p className="text-muted-foreground text-sm mt-1">{isEditing ? 'Update the plan details and exercises.' : 'Build a personalised plan for your client.'}</p>
       </div>
 
       {/* Plan details */}
@@ -372,15 +409,15 @@ const CreatePlan = () => {
           onClick={handleSubmit}
           disabled={
             !planName ||
-            !selectedClient ||
+            (!isEditing && !selectedClient) ||
             selectedExerciseIds.length === 0 ||
             createPlanMutation.isPending
           }
           className="w-full gradient-primary text-white font-bold py-4 rounded-2xl shadow-primary hover:opacity-90 transition-opacity disabled:opacity-40 text-lg"
         >
           {createPlanMutation.isPending
-            ? 'Creating...'
-            : `Save Plan (${selectedExerciseIds.length} exercise${selectedExerciseIds.length !== 1 ? 's' : ''})`}
+            ? (isEditing ? 'Updating...' : 'Creating...')
+            : `${isEditing ? 'Update Plan' : 'Create Plan'} (${selectedExerciseIds.length} exercise${selectedExerciseIds.length !== 1 ? 's' : ''})`}
         </button>
       </div>
     </div>

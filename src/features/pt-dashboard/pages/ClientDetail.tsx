@@ -1,14 +1,13 @@
 // src/features/pt-dashboard/pages/ClientDetail.tsx
-import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState, useMemo } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, MessageCircle, ClipboardList, Calendar,
-  Edit2, Save, ChevronDown, ChevronUp, Play, PauseCircle,
-  CheckCircle, Dumbbell, Plus,
+  Edit2, Save, ChevronDown, ChevronUp, Plus, Dumbbell, Activity,
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer,
+  Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ProgressRing from "@/features/client-dashboard/components/ProgressRing";
@@ -40,7 +39,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── Motion section ───────────────────────────────────────────────────
+// ── Motion section ────────────────────────────────────────────────────
 const MotionSection = ({ clientId }: { clientId: number }) => {
   const { data, isLoading } = useClientMotionReports(clientId);
 
@@ -53,25 +52,51 @@ const MotionSection = ({ clientId }: { clientId: number }) => {
     );
   }
 
+  const trend      = data?.trend ?? [];
+  const hasRomData = trend.some((t: any) => t.best_rom != null);
+
   return (
     <div className="bg-card rounded-2xl border border-border p-6 shadow-card space-y-5">
       <div className="flex items-center justify-between">
         <h2 className="font-display font-semibold">Motion & Form Reports</h2>
-        <span className="badge-approved">Avg: {data?.avg_form_score ?? 0}%</span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground">Avg form:</span>
+          <span className="badge-approved">{data?.avg_form_score ?? 0}%</span>
+        </div>
       </div>
 
-      {data?.trend?.length > 0 ? (
-        <ResponsiveContainer width="100%" height={160}>
-          <LineChart data={data.trend}>
+      {trend.length > 0 ? (
+        <ResponsiveContainer width="100%" height={180}>
+          <LineChart data={trend}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
             <XAxis dataKey="id" hide />
-            <YAxis domain={[0, 100]}
+            <YAxis
               tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-              axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={tooltipStyle} formatter={(v) => [`${v}%`, 'Form Score']} />
-            <Line type="monotone" dataKey="form_score"
+              axisLine={false} tickLine={false}
+            />
+            <Tooltip
+              contentStyle={tooltipStyle}
+              formatter={(v: any, name: string) => [
+                name === 'form_score' ? `${v}%` : `${v}°`,
+                name === 'form_score' ? 'Form Score' : 'Best ROM',
+              ]}
+            />
+            <Legend
+              formatter={(v) => v === 'form_score' ? 'Form Score' : 'Best ROM (°)'}
+              wrapperStyle={{ fontSize: 11 }}
+            />
+            <Line
+              type="monotone" dataKey="form_score"
               stroke="hsl(var(--primary))" strokeWidth={2}
-              dot={{ fill: 'hsl(var(--primary))', r: 3 }} activeDot={{ r: 5 }} />
+              dot={{ fill: 'hsl(var(--primary))', r: 3 }} activeDot={{ r: 5 }}
+            />
+            {hasRomData && (
+              <Line
+                type="monotone" dataKey="best_rom"
+                stroke="hsl(var(--hot-pink))" strokeWidth={2} strokeDasharray="4 2"
+                dot={{ fill: 'hsl(var(--hot-pink))', r: 3 }} activeDot={{ r: 5 }}
+              />
+            )}
           </LineChart>
         </ResponsiveContainer>
       ) : (
@@ -80,40 +105,51 @@ const MotionSection = ({ clientId }: { clientId: number }) => {
         </div>
       )}
 
+      {/* Recent sessions list */}
       <div className="space-y-2 max-h-64 overflow-y-auto">
         {data?.sessions?.data?.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-4">No completed sessions yet</p>
         )}
-        {data?.sessions?.data?.map((session: any) => (
-          <div key={session.id}
-            className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors">
-            <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
-              {session.form_score ?? '?'}
+        {data?.sessions?.data?.map((session: any) => {
+          const repHistory = session.motion_data?.rep_history ?? [];
+          const bestRom    = repHistory.length
+            ? Math.max(...repHistory.map((r: any) => r.max ?? 0))
+            : null;
+
+          return (
+            <div key={session.id}
+              className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors">
+              <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
+                {session.form_score ?? '?'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">
+                  {session.exercise?.title ?? 'Exercise'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(session.completed_at).toLocaleDateString()}
+                  {bestRom != null && ` · ROM: ${bestRom.toFixed(0)}°`}
+                  {` · ${session.coins_earned} coins`}
+                </p>
+              </div>
+              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                (session.form_score ?? 0) >= 80 ? 'bg-success'
+                : (session.form_score ?? 0) >= 50 ? 'bg-warning'
+                : 'bg-destructive'
+              }`} />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">
-                {session.exercise?.title ?? 'Exercise'}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {new Date(session.completed_at).toLocaleDateString()} · {session.coins_earned} coins
-              </p>
-            </div>
-            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-              (session.form_score ?? 0) >= 80 ? 'bg-success'
-              : (session.form_score ?? 0) >= 50 ? 'bg-warning'
-              : 'bg-destructive'
-            }`} />
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 };
 
-// ── Plans section ────────────────────────────────────────────────────
+// ── Plans section ─────────────────────────────────────────────────────
 function PlanAccordion({ plan }: { plan: any }) {
   const [open, setOpen] = useState(plan.status === 'active');
   const isActive = plan.status === 'active';
+  const navigate = useNavigate();
 
   return (
     <div className={`rounded-xl border transition-all duration-200 overflow-hidden ${
@@ -128,6 +164,14 @@ function PlanAccordion({ plan }: { plan: any }) {
           <div className="flex items-center gap-2 flex-wrap">
             <p className="font-semibold text-sm truncate">{plan.title}</p>
             <StatusBadge status={plan.status} />
+            {isActive && (
+              <button
+                onClick={(e) => { e.stopPropagation(); navigate(`/pt/plans/${plan.id}/edit`); }}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border border-border hover:bg-muted transition-colors ml-auto"
+              >
+                <Edit2 size={12} /> Edit Plan
+              </button>
+            )}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             {plan.exercises?.length ?? 0} exercises
@@ -148,11 +192,9 @@ function PlanAccordion({ plan }: { plan: any }) {
               <p className="text-sm">{plan.notes}</p>
             </div>
           )}
-
           {(plan.exercises ?? []).length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-3">No exercises in this plan.</p>
           )}
-
           {(plan.exercises ?? []).map((ex: any, i: number) => (
             <div key={ex.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
               <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
@@ -221,20 +263,15 @@ const PlansSection = ({ plans, clientId }: { plans: any[]; clientId: number }) =
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" /> Active
               </p>
-              {activePlans.map((plan) => (
-                <PlanAccordion key={plan.id} plan={plan} />
-              ))}
+              {activePlans.map((plan) => <PlanAccordion key={plan.id} plan={plan} />)}
             </div>
           )}
-
           {otherPlans.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 inline-block" /> Previous
               </p>
-              {otherPlans.map((plan) => (
-                <PlanAccordion key={plan.id} plan={plan} />
-              ))}
+              {otherPlans.map((plan) => <PlanAccordion key={plan.id} plan={plan} />)}
             </div>
           )}
         </div>
@@ -243,7 +280,7 @@ const PlansSection = ({ plans, clientId }: { plans: any[]; clientId: number }) =
   );
 };
 
-// ── Main ClientDetail ────────────────────────────────────────────────
+// ── Main ClientDetail ─────────────────────────────────────────────────
 const ClientDetail = () => {
   const { id }             = useParams();
   const clientIdAsNumber   = parseInt(id ?? '0', 10);
@@ -254,8 +291,11 @@ const ClientDetail = () => {
   const { data: clientData, isLoading } = useQuery({
     queryKey: ['pt-client', clientIdAsNumber],
     queryFn:  () => api.get(`/pt/clients/${clientIdAsNumber}`).then(r => r.data),
-    enabled: clientIdAsNumber > 0,
+    enabled:  clientIdAsNumber > 0,
   });
+
+  // Motion report data drives the recovery chart
+  const { data: motionData } = useClientMotionReports(clientIdAsNumber);
 
   const updateCondition = useMutation({
     mutationFn: (condition: string) =>
@@ -270,6 +310,49 @@ const ClientDetail = () => {
   });
 
   const client = clientData?.client ?? clientData;
+
+  // ── Recovery chart: built from real weekly_data returned by the motion report ──
+  // Falls back to session-derived counts if motion data is not yet loaded.
+  const recoveryChart = useMemo(() => {
+    // Prefer server-computed weekly_data (has ROM + form)
+    if (motionData?.weekly_data?.length) {
+      return motionData.weekly_data;
+    }
+
+    // Fallback: derive from sessions available in client data
+    if (!client?.exercise_plans) return [];
+
+    const allSessions = (client.exercise_plans as any[]).flatMap(
+      (p: any) => p.sessions ?? [],
+    );
+
+    // Last 8 weeks
+    return Array.from({ length: 8 }, (_, i) => {
+      const weeksAgo = 7 - i;
+      const start = new Date();
+      start.setDate(start.getDate() - (weeksAgo + 1) * 7);
+      const end = new Date();
+      end.setDate(end.getDate() - weeksAgo * 7);
+
+      const weekSessions = allSessions.filter((s: any) => {
+        const d = new Date(s.completed_at);
+        return s.status === 'completed' && d >= start && d < end;
+      });
+
+      const avgForm = weekSessions.length
+        ? Math.round(weekSessions.reduce((s: number, x: any) => s + (x.form_score ?? 0), 0) / weekSessions.length)
+        : null;
+
+      return {
+        week:     `Wk ${8 - weeksAgo}`,
+        sessions: weekSessions.length,
+        avg_form: avgForm,
+        avg_rom:  null,
+      };
+    });
+  }, [motionData, client]);
+
+  const hasRomInChart = recoveryChart.some((w: any) => w.avg_rom != null);
 
   if (isLoading) {
     return (
@@ -296,17 +379,10 @@ const ClientDetail = () => {
     );
   }
 
-  const allPlans    = client.exercise_plans ?? [];
-  const activePlan  = allPlans.find((p: any) => p.status === 'active');
-  const sessions    = allPlans.flatMap((p: any) => p.sessions ?? []);
+  const allPlans   = client.exercise_plans ?? [];
+  const activePlan = allPlans.find((p: any) => p.status === 'active');
+  const sessions   = allPlans.flatMap((p: any) => p.sessions ?? []);
   const totalSessions = sessions.filter((s: any) => s.status === 'completed').length;
-
-  // Build compliance chart from sessions
-  const complianceChart = Array.from({ length: 5 }, (_, i) => ({
-    week: `Week ${i + 1}`,
-    compliance: Math.floor(Math.random() * 40) + 60,
-    sessions: Math.floor(Math.random() * 5) + 1,
-  }));
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -339,10 +415,10 @@ const ClientDetail = () => {
         </div>
       </div>
 
-      {/* Stats + chart */}
+      {/* Stats + Recovery Progress chart */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* Left — stats */}
+        {/* Left — compliance ring + stats + condition editor */}
         <div className="bg-card rounded-2xl p-6 shadow-card border border-border flex flex-col gap-4">
           <ProgressRing
             value={client.compliance_rate ?? 0}
@@ -364,7 +440,7 @@ const ClientDetail = () => {
             ))}
           </div>
 
-          {/* Condition editor */}
+          {/* Condition editor — separate card section */}
           <div className="pt-3 border-t border-border">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-medium text-muted-foreground">Medical Condition</p>
@@ -379,9 +455,7 @@ const ClientDetail = () => {
                 }}
                 className="text-xs text-primary font-semibold flex items-center gap-1"
               >
-                {editingCondition
-                  ? <><Save size={11} /> Save</>
-                  : <><Edit2 size={11} /> Edit</>}
+                {editingCondition ? <><Save size={11} /> Save</> : <><Edit2 size={11} /> Edit</>}
               </button>
             </div>
             {editingCondition ? (
@@ -394,43 +468,90 @@ const ClientDetail = () => {
               />
             ) : (
               <p className="text-sm font-medium">
-                {client.condition ?? (
-                  <span className="text-muted-foreground italic">Not set</span>
-                )}
+                {client.condition ?? <span className="text-muted-foreground italic">Not set</span>}
               </p>
             )}
           </div>
         </div>
 
-        {/* Right — recovery chart */}
+        {/* Right — Recovery Progress chart (real data) */}
         <div className="lg:col-span-2 bg-card rounded-2xl p-6 shadow-card border border-border">
-          <h2 className="font-display font-semibold mb-4">Recovery Progress</h2>
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={complianceChart}>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-display font-semibold">Recovery Progress</h2>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <span className="w-3 h-0.5 inline-block rounded bg-primary" /> Sessions
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-3 h-0.5 inline-block rounded bg-[hsl(var(--hot-pink))]" /> Form %
+              </span>
+              {hasRomInChart && (
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-0.5 inline-block rounded bg-emerald-500" /> ROM°
+                </span>
+              )}
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            Based on {totalSessions} completed session{totalSessions !== 1 ? 's' : ''} · compliance and ROM improvement
+          </p>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={recoveryChart}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-              <XAxis dataKey="week"
-                tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                axisLine={false} tickLine={false} />
+              <XAxis
+                dataKey="week"
+                tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                axisLine={false} tickLine={false}
+              />
               <YAxis
-                tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                axisLine={false} tickLine={false} />
+                tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                axisLine={false} tickLine={false}
+              />
               <Tooltip contentStyle={tooltipStyle} />
-              <Line dataKey="compliance" stroke="hsl(var(--primary))"
-                strokeWidth={2.5} dot={{ r: 4, fill: 'hsl(var(--primary))' }} name="Compliance %" />
-              <Line dataKey="sessions" stroke="hsl(var(--hot-pink))"
-                strokeWidth={2.5} dot={{ r: 4, fill: 'hsl(var(--hot-pink))' }} name="Sessions" />
+              <Line
+                dataKey="sessions"
+                stroke="hsl(var(--primary))"
+                strokeWidth={2.5}
+                dot={{ r: 4, fill: 'hsl(var(--primary))' }}
+                name="Sessions"
+                connectNulls
+              />
+              <Line
+                dataKey="avg_form"
+                stroke="hsl(var(--hot-pink))"
+                strokeWidth={2.5}
+                dot={{ r: 4, fill: 'hsl(var(--hot-pink))' }}
+                name="Form %"
+                connectNulls
+              />
+              {hasRomInChart && (
+                <Line
+                  dataKey="avg_rom"
+                  stroke="#22C55E"
+                  strokeWidth={2.5}
+                  strokeDasharray="4 2"
+                  dot={{ r: 4, fill: '#22C55E' }}
+                  name="ROM°"
+                  connectNulls
+                />
+              )}
             </LineChart>
           </ResponsiveContainer>
+          {totalSessions === 0 && (
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              Chart will populate as the client completes sessions.
+            </p>
+          )}
         </div>
       </div>
 
       {/* Plans section */}
       <PlansSection plans={allPlans} clientId={clientIdAsNumber} />
 
-      {/* Motion reports */}
+      {/* Motion & Form Reports (includes ROM trend) */}
       {clientIdAsNumber > 0 && <MotionSection clientId={clientIdAsNumber} />}
 
-      {/* Session history */}
+      {/* Session History */}
       <div className="bg-card rounded-2xl p-6 shadow-card border border-border">
         <h2 className="font-display font-semibold mb-4">Session History</h2>
         {sessions.filter((s: any) => s.status === 'completed').length === 0 ? (
@@ -461,7 +582,7 @@ const ClientDetail = () => {
                     <p className="text-sm font-bold text-success">
                       {session.form_score ?? 0}%
                     </p>
-                    <p className="text-xs text-muted-foreground">form score</p>
+                    <p className="text-xs text-muted-foreground">form</p>
                   </div>
                 </div>
               ))}

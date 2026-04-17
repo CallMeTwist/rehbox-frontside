@@ -18,6 +18,7 @@ import ExerciseLibrary from "@/features/pt-dashboard/pages/ExerciseLibrary";
 import MyClients from "@/features/pt-dashboard/pages/MyClients";
 import ClientDetail from "@/features/pt-dashboard/pages/ClientDetail";
 import CreatePlan from "@/features/pt-dashboard/pages/CreatePlan";
+import EditPlan from "@/features/pt-dashboard/pages/EditPlan";
 import PTShop from "@/features/pt-dashboard/pages/Shop";
 import PTMessages from "@/features/pt-dashboard/pages/Messages";
 import PTProfile from "@/features/pt-dashboard/pages/Profile";
@@ -59,6 +60,7 @@ const AppRouter = () => (
         <Route path="clients" element={<MyClients />} />
         <Route path="clients/:id" element={<ClientDetail />} />
         <Route path="plans/create" element={<CreatePlan />} />
+        <Route path="plans/:planId/edit" element={<EditPlan />} />
         <Route path="shop" element={<PTShop />} />
         <Route path="messages" element={<PTMessages />} />
         <Route path="profile" element={<PTProfile />} />
