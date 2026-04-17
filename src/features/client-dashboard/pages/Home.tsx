@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
 import ProgressRing from "@/features/client-dashboard/components/ProgressRing";
+import { ReminderBanner } from "@/features/client-dashboard/components/ReminderBanner";
 import api from "@/features/shared/utils/api";
 import toast from "react-hot-toast";
 
@@ -212,6 +213,9 @@ const Home = () => {
           </div>
         </motion.div>
       )}
+
+      {/* ── Reminder banner ──────────────────────────────────────── */}
+      {hasPT && planInfo && <ReminderBanner planTitle={planInfo.title} />}
 
       {/* ── Hero greeting ────────────────────────────────────────── */}
       <motion.div
