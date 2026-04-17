@@ -8,6 +8,13 @@ import toast from "react-hot-toast";
 
 const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+const CATEGORY_LABELS: Record<string, string> = {
+  head_neck:  'Head & Neck',
+  upper_limb: 'Upper Limb',
+  back:       'Back',
+  lower_limb: 'Lower Limb',
+};
+
 interface ExerciseOverride {
   sets: number;
   reps: number;
@@ -62,6 +69,8 @@ const CreatePlan = ({ editPlan }: CreatePlanProps = {}) => {
   const [submitted, setSubmitted]           = useState(false);
   const [createdPlanName, setCreatedPlanName]     = useState("");
   const [createdClientName, setCreatedClientName] = useState("");
+  const [searchQuery, setSearchQuery]         = useState('');
+  const [openCategories, setOpenCategories]   = useState<Set<string>>(new Set());
 
   // Map of exercise id → override values
   const [overrides, setOverrides] = useState<Record<number, ExerciseOverride>>({});
@@ -101,6 +110,18 @@ const CreatePlan = ({ editPlan }: CreatePlanProps = {}) => {
 
   const clients   = Array.isArray(clientsData)   ? clientsData   : [];
   const exercises = Array.isArray(exercisesData) ? exercisesData : [];
+
+  const filteredExercises = exercises.filter((ex: any) =>
+    ex.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (ex.description?.toLowerCase() ?? '').includes(searchQuery.toLowerCase())
+  );
+
+  const groupedExercises = filteredExercises.reduce((acc: Record<string, any[]>, ex: any) => {
+    const cat = ex.category ?? 'other';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(ex);
+    return acc;
+  }, {});
 
   const toggleExercise = (ex: any) => {
     setOverrides((prev) => {
@@ -297,9 +318,9 @@ const CreatePlan = ({ editPlan }: CreatePlanProps = {}) => {
         <p className="text-muted-foreground text-sm mb-4">{selectedExerciseIds.length} selected</p>
 
         {exercisesLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-24 bg-muted rounded-2xl animate-pulse" />
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-12 bg-muted rounded-xl animate-pulse" />
             ))}
           </div>
         ) : exercises.length === 0 ? (
@@ -310,40 +331,84 @@ const CreatePlan = ({ editPlan }: CreatePlanProps = {}) => {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {exercises.map((ex: any) => {
-              const selected = !!overrides[ex.id];
-              return (
+          <>
+            {/* Search input */}
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search exercises..."
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 mb-4"
+            />
+
+            {/* Category accordions */}
+            {Object.entries(groupedExercises).map(([cat, catExercises]) => (
+              <div key={cat} className="border border-border rounded-xl overflow-hidden mb-2">
                 <button
-                  key={ex.id}
                   type="button"
-                  onClick={() => toggleExercise(ex)}
-                  className={`text-left rounded-2xl border p-3 transition-all ${
-                    selected
-                      ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                      : 'border-border bg-card hover:border-primary/40'
-                  }`}
+                  onClick={() => setOpenCategories(prev => {
+                    const next = new Set(prev);
+                    if (next.has(cat)) { next.delete(cat); } else { next.add(cat); }
+                    return next;
+                  })}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-muted/40 hover:bg-muted/70 transition-colors"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center mb-2 overflow-hidden">
-                    {ex.illustration_url ? (
-                      <img src={ex.illustration_url} alt={ex.title} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-xl">🏃</span>
-                    )}
-                  </div>
-                  <p className="text-xs font-semibold leading-tight line-clamp-2">{ex.title}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {ex.default_sets}×{ex.default_reps}
-                  </p>
-                  {selected && (
-                    <span className="inline-block mt-1.5 text-xs bg-primary text-white px-1.5 py-0.5 rounded-full font-medium">
-                      ✓ Added
-                    </span>
-                  )}
+                  <span className="font-semibold text-sm">
+                    {CATEGORY_LABELS[cat] ?? cat}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {catExercises.length} exercise{catExercises.length !== 1 ? 's' : ''}
+                    {' '}{openCategories.has(cat) ? '▲' : '▼'}
+                  </span>
                 </button>
-              );
-            })}
-          </div>
+                {openCategories.has(cat) && (
+                  <div className="p-2 space-y-1.5">
+                    {catExercises.map((ex: any) => {
+                      const isSelected = selectedExerciseIds.includes(ex.id);
+                      return (
+                        <div
+                          key={ex.id}
+                          className={`rounded-xl p-3 border transition-colors cursor-pointer ${
+                            isSelected
+                              ? 'bg-primary/8 border-primary/30'
+                              : 'bg-card border-border hover:bg-muted/30'
+                          }`}
+                          onClick={() => toggleExercise(ex)}
+                        >
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                              isSelected ? 'bg-primary border-primary' : 'border-muted-foreground/30'
+                            }`}>
+                              {isSelected && <CheckCircle size={12} className="text-white" />}
+                            </div>
+                            <span className="text-sm font-semibold flex-1">{ex.title}</span>
+                            {ex.category && (
+                              <span className="text-xs text-muted-foreground capitalize px-2 py-0.5 bg-muted rounded-lg">
+                                {CATEGORY_LABELS[ex.category] ?? ex.category}
+                              </span>
+                            )}
+                          </div>
+                          {isSelected && overrides[ex.id] && (
+                            <div className="flex gap-4 mt-2 pl-8">
+                              <Stepper label="Sets" value={overrides[ex.id].sets} min={1} onChange={(v) => updateOverride(ex.id, 'sets', v)} />
+                              <Stepper label="Reps" value={overrides[ex.id].reps} min={1} onChange={(v) => updateOverride(ex.id, 'reps', v)} />
+                              <Stepper label="Hold (s)" value={overrides[ex.id].hold_seconds} min={0} onChange={(v) => updateOverride(ex.id, 'hold_seconds', v)} />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {Object.keys(groupedExercises).length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                {searchQuery ? 'No exercises match your search.' : 'No exercises available.'}
+              </p>
+            )}
+          </>
         )}
       </div>
 
