@@ -5,6 +5,7 @@ import { useShop } from '../hooks/useRewards';
 import { Skeleton } from '@/components/ui/skeleton';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
+import { ComingSoon } from '../components/ComingSoon';
 
 const CATEGORIES = [
   { value: '',           label: 'All' },
@@ -14,6 +15,8 @@ const CATEGORIES = [
   { value: 'apparel',    label: '👕 Apparel' },
 ];
 
+const SHOP_ENABLED = false;
+
 const Shop = () => {
   const [category, setCategory]       = useState('');
   const [selected, setSelected]       = useState<any>(null);
@@ -22,6 +25,16 @@ const Shop = () => {
   const qc = useQueryClient();
 
   const { data, isLoading } = useShop(category);
+
+  if (!SHOP_ENABLED) {
+    return (
+      <ComingSoon
+        title="Shop Coming Soon"
+        subtitle="Earn coins now by exercising with great form. You'll be able to spend them here very soon."
+        backTo="/client"
+      />
+    );
+  }
 
   const purchaseMutation = useMutation({
     mutationFn: () =>
