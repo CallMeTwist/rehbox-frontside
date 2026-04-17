@@ -143,7 +143,7 @@ const Home = () => {
   });
 
   const clientInfo      = profileData?.client;
-  const planInfo        = planData?.plan;
+  const planInfo        = planData?.active_plan ?? planData?.plan;
   const progressSummary = progressData?.summary;
   const hasPT           = !!clientInfo?.physiotherapist_id;
   const subStatus       = clientInfo?.subscription_status ?? "inactive";
@@ -155,7 +155,7 @@ const Home = () => {
   const formScore  = progressSummary?.avg_form_score ?? 0;
   const sessions   = progressSummary?.total_sessions_this_month ?? 0;
   const coins      = clientInfo?.coin_balance ?? 0;
-  const progress   = sessions ? Math.min(sessions * 10, 100) : 0;
+  const progress   = planData?.compliance_rate ?? (sessions ? Math.min(sessions * 10, 100) : 0);
 
   if (isLoading) {
     return (
