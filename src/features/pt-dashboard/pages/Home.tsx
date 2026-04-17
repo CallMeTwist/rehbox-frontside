@@ -143,7 +143,7 @@ const Home = () => {
           <div>
             <p className="text-white/60 text-sm font-medium mb-1">{today}</p>
             <h1 className="font-display font-bold text-2xl md:text-3xl text-white leading-tight">
-              {greeting}, <span className="text-white">Dr. {firstName}</span> 👋
+              {greeting}, <span className="text-white">{firstName}</span> 👋
             </h1>
             <p className="text-white/70 text-sm mt-2">
               {(stats?.active_clients ?? 0) > 0
