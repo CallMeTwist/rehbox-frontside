@@ -1,16 +1,20 @@
 // src/features/client-dashboard/pages/QandA.tsx
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Send } from 'lucide-react';
+import { Send, Paperclip } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { useChatSocket } from '@/features/shared/hooks/useWebSocket';
 import { UpgradeLocked } from '@/features/shared/components/UpgradeLocked';
+import { ChatFilePreview, MessageFile } from '../components/ChatFilePreview';
 
 const QandA = () => {
   const user  = useAuthStore((s) => s.user);
   const qc = useQueryClient();
   const [text, setText] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const fileInputRef    = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const isClient = user?.role === 'client';
   //    because QandA is only accessible from ClientLayout)
@@ -55,8 +59,17 @@ const QandA = () => {
 
   // ── Send message — no need to pass client_id or receiver_id ──
   const sendMutation = useMutation({
-    mutationFn: (body: string) =>
-      api.post('/client/chat', { body }),       // ← controller resolves the rest
+    mutationFn: (body: string) => {
+      if (file) {
+        const formData = new FormData();
+        if (body) formData.append('body', body);
+        formData.append('file', file);
+        return api.post('/client/chat', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      }
+      return api.post('/client/chat', { body });
+    },
     onSuccess: ({ data }) => {
       const newMsg = data.message ?? data;
       qc.setQueryData(
@@ -67,11 +80,12 @@ const QandA = () => {
         }
       );
       setText('');
+      setFile(null);
     },
   });
 
   const handleSend = () => {
-    if (!text.trim() || sendMutation.isPending) return;
+    if ((!text.trim() && !file) || sendMutation.isPending) return;
     sendMutation.mutate(text.trim());
   };
 
@@ -134,7 +148,15 @@ const QandA = () => {
                       {msg.sender?.name ?? 'PT'}
                     </p>
                   )}
-                  <p className="text-sm leading-relaxed">{msg.body}</p>
+                  {msg.body && <p className="text-sm leading-relaxed">{msg.body}</p>}
+                  {msg.file_url && (
+                    <MessageFile
+                      fileUrl={msg.file_url}
+                      fileType={msg.file_type ?? ''}
+                      fileName={msg.file_name ?? 'file'}
+                      fileSize={msg.file_size ?? 0}
+                    />
+                  )}
                   <p className={`text-xs mt-1 ${isOwn ? 'text-white/60' : 'text-muted-foreground'}`}>
                     {new Date(msg.created_at).toLocaleTimeString([], {
                       hour: '2-digit', minute: '2-digit',
@@ -155,23 +177,52 @@ const QandA = () => {
             Link a physiotherapist to start messaging
           </p>
         ) : (
-          <div className="flex gap-3">
+          <>
+            {file && (
+              <div className="px-4 pt-2">
+                <ChatFilePreview file={file} onRemove={() => setFile(null)} />
+              </div>
+            )}
             <input
-              type="text"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-              placeholder="Type a message..."
-              className="flex-1 bg-muted rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,.pdf"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f && f.size > 10 * 1024 * 1024) {
+                  toast.error('File must be under 10 MB');
+                  return;
+                }
+                if (f) setFile(f);
+                e.target.value = '';
+              }}
             />
-            <button
-              onClick={handleSend}
-              disabled={!text.trim() || sendMutation.isPending}
-              className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center text-white disabled:opacity-40 transition"
-            >
-              <Send size={16} />
-            </button>
-          </div>
+            <div className="flex gap-3 mt-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-10 h-10 rounded-xl border border-border flex items-center justify-center hover:bg-muted transition-colors flex-shrink-0"
+              >
+                <Paperclip size={16} className="text-muted-foreground" />
+              </button>
+              <input
+                type="text"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                placeholder="Type a message..."
+                className="flex-1 bg-muted rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              <button
+                onClick={handleSend}
+                disabled={(!text.trim() && !file) || sendMutation.isPending}
+                className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center text-white disabled:opacity-40 transition"
+              >
+                <Send size={16} />
+              </button>
+            </div>
+          </>
         )}
       </div>
 
