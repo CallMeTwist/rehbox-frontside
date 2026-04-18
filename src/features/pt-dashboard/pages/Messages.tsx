@@ -1,11 +1,13 @@
 // src/features/pt-dashboard/pages/Messages.tsx
 import { useState, useEffect, useRef } from "react";
-import { Send } from "lucide-react";
+import { Send, Paperclip } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import toast from 'react-hot-toast';
 import api from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { useOnlineUsers } from "@/features/shared/hooks/useOnlineUsers";
 import getEcho, { hasEcho } from "@/features/shared/utils/echo";
+import { ChatFilePreview, MessageFile } from '@/features/client-dashboard/components/ChatFilePreview';
 
 const Messages = () => {
   const { user } = useAuthStore();
@@ -14,7 +16,9 @@ const Messages = () => {
 
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [input, setInput]                   = useState("");
+  const [file, setFile]                     = useState<File | null>(null);
   const bottomRef                           = useRef<HTMLDivElement>(null);
+  const fileInputRef                        = useRef<HTMLInputElement>(null);
   const { isOnline }                        = useOnlineUsers();
 
   // Track the previous subscribed channel so cleanup always targets the right one
@@ -90,23 +94,35 @@ const Messages = () => {
 
   // Send a message
   const sendMutation = useMutation({
-    mutationFn: () =>
-      api.post('/pt/chat', {
+    mutationFn: () => {
+      if (file) {
+        const formData = new FormData();
+        formData.append('receiver_id', String(selectedClient.user_id));
+        formData.append('client_id', String(selectedClient.id));
+        if (input.trim()) formData.append('body', input.trim());
+        formData.append('file', file);
+        return api.post('/pt/chat', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      }
+      return api.post('/pt/chat', {
         receiver_id: selectedClient.user_id,
         client_id:   selectedClient.id,
-        body:        input,
-      }),
+        body:        input.trim(),
+      });
+    },
     onSuccess: ({ data }) => {
       qc.setQueryData(
         ['pt-messages', selectedClient.id],
         (old: any[] = []) => [...old, data.message]
       );
       setInput('');
+      setFile(null);
     },
   });
 
   const handleSend = () => {
-    if (!input.trim() || !selectedClient || sendMutation.isPending) return;
+    if ((!input.trim() && !file) || !selectedClient || sendMutation.isPending) return;
     sendMutation.mutate();
   };
 
@@ -218,7 +234,15 @@ const Messages = () => {
                         : 'bg-card border border-border rounded-bl-sm'
                     }`}
                   >
-                    <p className="text-sm">{msg.body}</p>
+                    {msg.body && <p className="text-sm">{msg.body}</p>}
+                    {msg.file_url && (
+                      <MessageFile
+                        fileUrl={msg.file_url}
+                        fileType={msg.file_type ?? ''}
+                        fileName={msg.file_name ?? 'file'}
+                        fileSize={msg.file_size ?? 0}
+                      />
+                    )}
                     <p
                       className={`text-xs mt-1 ${
                         isOwn ? 'text-white/60' : 'text-muted-foreground'
@@ -236,8 +260,37 @@ const Messages = () => {
             <div ref={bottomRef} />
           </div>
 
+          {/* File preview */}
+          {file && (
+            <div className="px-4 pt-2">
+              <ChatFilePreview file={file} onRemove={() => setFile(null)} />
+            </div>
+          )}
+
           {/* Input */}
           <div className="flex gap-3 pt-4 border-t border-border flex-shrink-0">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,.pdf"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f && f.size > 10 * 1024 * 1024) {
+                  toast.error('File must be under 10 MB');
+                  return;
+                }
+                if (f) setFile(f);
+                e.target.value = '';
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-10 h-10 rounded-xl border border-border flex items-center justify-center hover:bg-muted transition-colors flex-shrink-0"
+            >
+              <Paperclip size={16} className="text-muted-foreground" />
+            </button>
             <input
               type="text"
               value={input}
@@ -248,7 +301,7 @@ const Messages = () => {
             />
             <button
               onClick={handleSend}
-              disabled={sendMutation.isPending || !input.trim()}
+              disabled={sendMutation.isPending || (!input.trim() && !file)}
               className="gradient-primary text-white p-2.5 rounded-xl shadow-primary hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               <Send size={18} />
