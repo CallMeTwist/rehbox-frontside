@@ -1,4 +1,9 @@
 function getYouTubeEmbedUrl(url: string): string | null {
+  // Bare video ID — 11 alphanumeric/dash/underscore chars
+  if (/^[\w-]{11}$/.test(url.trim())) {
+    return `https://www.youtube.com/embed/${url.trim()}`;
+  }
+
   try {
     const parsed = new URL(url);
     let videoId: string | null = null;
@@ -10,7 +15,6 @@ function getYouTubeEmbedUrl(url: string): string | null {
       parsed.hostname === 'youtube.com'
     ) {
       if (parsed.pathname.startsWith('/embed/')) {
-        // Already an embed URL — extract the ID so we can re-add our params
         videoId = parsed.pathname.replace('/embed/', '');
       } else if (parsed.pathname.startsWith('/shorts/')) {
         videoId = parsed.pathname.replace('/shorts/', '');

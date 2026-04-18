@@ -134,20 +134,6 @@ const ExerciseDrawer = ({
             )}
           </div>
 
-          {/* Stats row */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: 'Sets',    value: exercise.default_sets },
-              { label: 'Reps',    value: exercise.default_reps },
-              { label: 'Hold (s)', value: exercise.default_hold_seconds },
-            ].map((s) => (
-              <div key={s.label} className="bg-muted rounded-2xl p-3 text-center">
-                <p className="text-xl font-display font-bold">{s.value}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
-              </div>
-            ))}
-          </div>
-
           {/* Description */}
           {exercise.description && (
             <div>
@@ -270,10 +256,6 @@ const ExerciseLibrary = () => {
                       {CATEGORY_LABELS[ex.category] ?? ex.category}
                     </span>
                   )}
-                </div>
-                <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
-                  <span>{ex.default_sets} sets</span>
-                  <span>{ex.default_reps} reps</span>
                 </div>
               </div>
             </button>

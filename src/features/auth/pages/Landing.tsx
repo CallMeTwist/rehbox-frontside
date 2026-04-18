@@ -21,16 +21,16 @@ const features = [
 
 const pricingPlans = [
   {
-    name: "Basic", price: 3_500, icon: Zap, popular: false,
-    features: ["Exercise library access", "5 PT messages/day", "Basic tracking", "50 coins/session"],
+    name: "Basic", price: 3_500, icon: Zap, popular: false, isEnterprise: false,
+    features: ["Access to general exercises", "Basic progress tracking", "Coin rewards system"],
   },
   {
-    name: "Standard", price: 7_500, icon: Crown, popular: true,
-    features: ["Everything in Basic", "Unlimited PT messaging", "Full motion tracking", "Advanced analytics", "200 coins/session"],
+    name: "Standard", price: 7_500, icon: Crown, popular: true, isEnterprise: false,
+    features: ["Personalised PT exercise plan", "Chat with your PT (text + files)", "MediaPipe motion tracking", "Coin rewards & shop", "Progress analytics"],
   },
   {
-    name: "Premium", price: 15_000, icon: Award, popular: false,
-    features: ["Everything in Standard", "Priority PT matching", "Video consultations", "Family accounts", "500 coins/session"],
+    name: "Enterprise", price: 0, icon: Award, popular: false, isEnterprise: true,
+    features: ["Everything in Standard", "Multiple PT accounts under one clinic", "Clinic-wide analytics dashboard", "Priority support"],
   },
 ];
 
@@ -546,18 +546,29 @@ const Landing = () => {
 
                     {/* Price */}
                     <div className="flex items-baseline gap-1 mb-6">
-                      <span
-                        className="font-display font-bold text-4xl"
-                        style={{ color: isPopular ? "#fff" : "#0F2557" }}
-                      >
-                        ₦{plan.price.toLocaleString()}
-                      </span>
-                      <span
-                        className="text-sm"
-                        style={{ color: isPopular ? "rgba(255,255,255,0.6)" : "#9ca3af" }}
-                      >
-                        /month
-                      </span>
+                      {plan.isEnterprise ? (
+                        <span
+                          className="font-display font-bold text-3xl"
+                          style={{ color: "#0F2557" }}
+                        >
+                          Contact us
+                        </span>
+                      ) : (
+                        <>
+                          <span
+                            className="font-display font-bold text-4xl"
+                            style={{ color: isPopular ? "#fff" : "#0F2557" }}
+                          >
+                            ₦{plan.price.toLocaleString()}
+                          </span>
+                          <span
+                            className="text-sm"
+                            style={{ color: isPopular ? "rgba(255,255,255,0.6)" : "#9ca3af" }}
+                          >
+                            /month
+                          </span>
+                        </>
+                      )}
                     </div>
 
                     {/* Features */}
@@ -576,25 +587,27 @@ const Landing = () => {
                     </ul>
 
                     {/* CTA */}
-                    <Link
-                      to="/register/client"
-                      className="flex items-center justify-center gap-2 w-full font-bold py-3.5 rounded-xl transition-all hover:opacity-90"
-                      style={
-                        isPopular
-                          ? {
-                              background: "#E5197D",
-                              color: "#fff",
-                              boxShadow: "0 8px 24px rgba(229,25,125,0.45)",
-                            }
-                          : {
-                              border: "2px solid #1B3E8F",
-                              color: "#1B3E8F",
-                              background: "transparent",
-                            }
-                      }
-                    >
-                      Get Started
-                    </Link>
+                    {plan.isEnterprise ? (
+                      <a
+                        href="mailto:hello@rehbox.health?subject=Enterprise%20Enquiry"
+                        className="flex items-center justify-center gap-2 w-full font-bold py-3.5 rounded-xl transition-all hover:opacity-90"
+                        style={{ border: "2px solid #1B3E8F", color: "#1B3E8F", background: "transparent" }}
+                      >
+                        Contact Sales
+                      </a>
+                    ) : (
+                      <Link
+                        to="/register/client"
+                        className="flex items-center justify-center gap-2 w-full font-bold py-3.5 rounded-xl transition-all hover:opacity-90"
+                        style={
+                          isPopular
+                            ? { background: "#E5197D", color: "#fff", boxShadow: "0 8px 24px rgba(229,25,125,0.45)" }
+                            : { border: "2px solid #1B3E8F", color: "#1B3E8F", background: "transparent" }
+                        }
+                      >
+                        Get Started
+                      </Link>
+                    )}
                   </motion.div>
                 </Reveal>
               );
