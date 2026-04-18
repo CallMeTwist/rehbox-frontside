@@ -23,6 +23,9 @@ function PlanCard({ plan, defaultOpen }: { plan: any; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen ?? false);
   const isActive = plan.status === 'active';
 
+  const wasUpdated = plan.updated_at && plan.created_at &&
+    new Date(plan.updated_at).getTime() - new Date(plan.created_at).getTime() > 60_000;
+
   return (
     <div className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
       isActive
@@ -43,12 +46,24 @@ function PlanCard({ plan, defaultOpen }: { plan: any; defaultOpen?: boolean }) {
               {plan.title}
             </p>
             <StatusBadge status={plan.status} />
+            {wasUpdated && (
+              <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                ✏️ Updated
+              </span>
+            )}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {plan.exercises?.length ?? 0} exercises
-            {plan.frequency && ` · ${plan.frequency.replace('_', ' ')}`}
-            {plan.start_date && ` · Started ${new Date(plan.start_date).toLocaleDateString()}`}
-          </p>
+          <div className="space-y-0.5">
+            <p className="text-xs text-muted-foreground">
+              {plan.exercises?.length ?? 0} exercises
+              {plan.frequency && ` · ${plan.frequency.replace('_', ' ')}`}
+              {plan.start_date && ` · Started ${new Date(plan.start_date).toLocaleDateString()}`}
+            </p>
+            {wasUpdated && (
+              <p className="text-xs text-muted-foreground">
+                Last edited {new Date(plan.updated_at).toLocaleDateString()}
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="text-muted-foreground flex-shrink-0">
