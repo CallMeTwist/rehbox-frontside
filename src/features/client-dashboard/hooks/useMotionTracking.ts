@@ -22,7 +22,7 @@ interface MotionSnapshot {
 // Number of frames in the rolling wrong-exercise detection window (~3 seconds at 30fps)
 const DETECTION_WINDOW = 90;
 
-export function useMotionTracking(correctAngles?: JointRule[]) {
+export function useMotionTracking(correctAngles?: JointRule[], trackingConfig?: any) {
   const [formScore,           setFormScore]           = useState<number>(0);
   const [feedback,            setFeedback]            = useState<string>('');
   const [repCount,            setRepCount]            = useState<number>(0);
@@ -37,6 +37,12 @@ export function useMotionTracking(correctAngles?: JointRule[]) {
   const trackerRef          = useRef<RepTracker | null>(null);
   const correctAnglesRef    = useRef(correctAngles);
   correctAnglesRef.current  = correctAngles;
+  const trackingConfigRef   = useRef(trackingConfig);
+  trackingConfigRef.current = trackingConfig;
+
+  type RepPhase = 'ready' | 'down' | 'up';
+  const repPhaseRef = useRef<RepPhase>('ready');
+
   const angleBufferRef      = useRef<number[]>([]);
   const prevAngleRef        = useRef<number | null>(null);
   const SMOOTHING_FRAMES    = 5;
@@ -93,6 +99,39 @@ export function useMotionTracking(correctAngles?: JointRule[]) {
     return angle;
   }, []);
 
+  const countCompositeRep = useCallback((angle: number): void => {
+    const config = trackingConfigRef.current;
+    if (!config?.down || !config?.up || config.mode !== 'composite') return;
+
+    // Use first joint's threshold for a single representative angle
+    const downThresholds = Object.values(config.down) as string[];
+    const upThresholds   = Object.values(config.up)   as string[];
+    if (!downThresholds.length || !upThresholds.length) return;
+
+    const parseThreshold = (t: string) => ({
+      op:  t.startsWith('<') ? '<' : '>',
+      val: parseInt(t.replace(/[<>]/g, ''), 10),
+    });
+
+    const meetsDown = downThresholds.every((t) => {
+      const { op, val } = parseThreshold(t);
+      return op === '<' ? angle < val : angle > val;
+    });
+
+    const meetsUp = upThresholds.every((t) => {
+      const { op, val } = parseThreshold(t);
+      return op === '<' ? angle < val : angle > val;
+    });
+
+    if (repPhaseRef.current === 'ready' && meetsDown) {
+      repPhaseRef.current = 'down';
+    } else if (repPhaseRef.current === 'down' && meetsUp) {
+      repPhaseRef.current = 'up';
+      setRepCount((r) => r + 1);
+      repPhaseRef.current = 'ready';
+    }
+  }, []);
+
   const processResults = useCallback((results: Results) => {
     if (!results.poseLandmarks) return;
 
@@ -125,6 +164,19 @@ export function useMotionTracking(correctAngles?: JointRule[]) {
           setVelocity(Math.round(angle - prevAngleRef.current));
         }
         prevAngleRef.current = angle;
+      }
+    }
+
+    // Composite rep counting (when exercise has no ROM rep rule)
+    const config = trackingConfigRef.current;
+    if (!repRule && config?.mode === 'composite' && correctAnglesRef.current?.length) {
+      const firstRule = correctAnglesRef.current[0];
+      const triplet: [number, number, number] = Array.isArray(firstRule.landmarks)
+        ? firstRule.landmarks as [number, number, number]
+        : [firstRule.landmarks[0], firstRule.landmarks[1], firstRule.landmarks[2]];
+      const rawA = computeAngleForRule(lm, triplet, firstRule.side ?? 'bilateral');
+      if (rawA !== null) {
+        countCompositeRep(smoothAngle(rawA));
       }
     }
 
@@ -207,7 +259,7 @@ export function useMotionTracking(correctAngles?: JointRule[]) {
         setWrongExerciseWarning(warning);
       }
     }
-  }, []); // reads correctAngles via ref on every call
+  }, [smoothAngle, countCompositeRep, clampToPhysiological]); // reads correctAngles/trackingConfig via ref on every call
 
   const getMotionData = useCallback(() => ({
     snapshots:        snapshots.current,
@@ -220,9 +272,10 @@ export function useMotionTracking(correctAngles?: JointRule[]) {
   }), []);
 
   const reset = useCallback(() => {
-    snapshots.current  = [];
-    frameCount.current = 0;
+    snapshots.current      = [];
+    frameCount.current     = 0;
     trackerRef.current?.reset();
+    repPhaseRef.current    = 'ready';
     angleHistoryRef.current = Object.fromEntries(
       Object.keys(JOINT_GROUPS).map((g) => [g, []]),
     );
