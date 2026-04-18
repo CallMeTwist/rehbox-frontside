@@ -1,4 +1,6 @@
-import { FileText, X, Download } from 'lucide-react';
+import { FileText, X, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { useAuthStore } from '@/store/authStore';
 
 interface ChatFilePreviewProps {
   file: File;
@@ -40,34 +42,76 @@ interface MessageFileProps {
   fileSize: number;
 }
 
+async function fetchWithAuth(url: string, token: string): Promise<string> {
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error('Failed to load file');
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}
+
 export const MessageFile = ({ fileUrl, fileType, fileName, fileSize }: MessageFileProps) => {
   const sizeKB = (fileSize / 1024).toFixed(1);
+  const token = useAuthStore.getState().token ?? '';
+  const isImage = fileType?.startsWith('image/') || fileType === 'image';
 
-  if (fileType?.startsWith('image/') || fileType === 'image') {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const open = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const url = await fetchWithAuth(fileUrl, token);
+      if (isImage) {
+        setBlobUrl(url);
+      } else {
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (isImage) {
     return (
-      <a href={fileUrl} target="_blank" rel="noopener noreferrer">
-        <img
-          src={fileUrl}
-          alt={fileName}
-          className="max-w-[220px] rounded-xl mt-1 cursor-pointer hover:opacity-90 transition-opacity"
-        />
-      </a>
+      <div className="mt-1">
+        {blobUrl ? (
+          <img
+            src={blobUrl}
+            alt={fileName}
+            className="max-w-[220px] rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => window.open(blobUrl, '_blank')}
+          />
+        ) : (
+          <button
+            onClick={open}
+            className="flex items-center gap-2 border border-white/20 rounded-xl px-3 py-2 hover:bg-white/10 transition-colors text-left w-full"
+            disabled={loading}
+          >
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
+            <span className="text-xs font-medium truncate max-w-[150px]">{fileName}</span>
+          </button>
+        )}
+      </div>
     );
   }
 
   return (
-    <a
-      href={fileUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="mt-1 flex items-center gap-2 border border-white/20 rounded-xl px-3 py-2 hover:bg-white/10 transition-colors"
+    <button
+      onClick={open}
+      disabled={loading}
+      className="mt-1 flex items-center gap-2 border border-white/20 rounded-xl px-3 py-2 hover:bg-white/10 transition-colors text-left w-full"
     >
-      <FileText size={16} />
+      {loading ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
       <div className="min-w-0">
         <p className="text-xs font-medium truncate max-w-[150px]">{fileName}</p>
         <p className="text-xs opacity-70">{sizeKB} KB · PDF</p>
       </div>
-      <Download size={12} className="ml-auto opacity-70" />
-    </a>
+    </button>
   );
 };
