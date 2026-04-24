@@ -10,7 +10,71 @@ import { useMyPlan } from '../hooks/useMyPlan';
 import VideoPlayer from '@/features/shared/components/VideoPlayer';
 import { ROM_STANDARDS } from '@/features/shared/utils/motion';
 
-type Phase = 'intro' | 'active' | 'complete';
+type Phase = 'intro' | 'side_select' | 'active' | 'complete';
+type Side = 'left' | 'right';
+
+const BILATERAL_JOINTS = ['shoulder', 'elbow', 'wrist', 'hip', 'knee', 'ankle'];
+
+function needsSideGate(correctAngles?: any[]): boolean {
+  if (!correctAngles?.length) return false;
+  return correctAngles.some(
+    (r: any) =>
+      (!r.side || r.side === 'bilateral') &&
+      BILATERAL_JOINTS.some(j => (r.joint ?? '').toLowerCase().includes(j)),
+  );
+}
+
+function targetJointLabel(correctAngles?: any[]): string {
+  const repRule = correctAngles?.find((r: any) => r.rep_joint) ?? correctAngles?.[0];
+  if (!repRule) return 'joint';
+  const joint = (repRule.joint ?? '').toLowerCase();
+  for (const j of BILATERAL_JOINTS) {
+    if (joint.includes(j)) return j.charAt(0).toUpperCase() + j.slice(1);
+  }
+  return repRule.joint ?? 'joint';
+}
+
+// ── Side Selection Screen ─────────────────────────────────────────────
+interface SideSelectProps {
+  jointLabel: string;
+  onSelect: (side: Side) => void;
+}
+
+function SideSelectScreen({ jointLabel, onSelect }: SideSelectProps) {
+  return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+      <div className="max-w-sm w-full text-center space-y-8">
+        <div>
+          <div className="w-20 h-20 rounded-2xl gradient-primary flex items-center justify-center text-4xl mx-auto mb-6 shadow-primary">
+            🦾
+          </div>
+          <h2 className="font-display font-bold text-2xl mb-2">Which side?</h2>
+          <p className="text-muted-foreground text-sm">
+            Select the side of your <span className="font-semibold text-foreground">{jointLabel}</span> being treated
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          {(['left', 'right'] as Side[]).map((side) => (
+            <button
+              key={side}
+              onClick={() => onSelect(side)}
+              className="group bg-card border-2 border-border hover:border-primary rounded-2xl p-6 flex flex-col items-center gap-3 transition-all hover:shadow-md hover:bg-primary/5 active:scale-95"
+            >
+              <span className="text-4xl">{side === 'left' ? '◀' : '▶'}</span>
+              <span className="font-display font-bold text-lg capitalize">{side}</span>
+              <span className="text-xs text-muted-foreground">{side === 'left' ? 'Left side' : 'Right side'}</span>
+            </button>
+          ))}
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          Only your selected side will be tracked for reps and ROM. The other side will still appear in the skeleton overlay.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 // ── ROM Gauge — digital goniometer display ────────────────────────────
 interface ROMGaugeProps {
@@ -79,6 +143,7 @@ const ExerciseSession = () => {
   const navigate       = useNavigate();
   const [phase, setPhase]           = useState<Phase>('intro');
   const [sessionId, setSessionId]   = useState<number | null>(null);
+  const [activeSide, setActiveSide] = useState<Side | null>(null);
   const [rating, setRating]         = useState<number>(0);
   const [cameraOn, setCameraOn]     = useState(false);
   const [elapsed, setElapsed]       = useState(0);
@@ -94,6 +159,8 @@ const ExerciseSession = () => {
     if (found) { exercise = found; planId = plan.id; break; }
   }
 
+  const holdSeconds = exercise?.pivot?.hold_seconds ?? 0;
+
   const {
     processResults,
     formScore,
@@ -101,12 +168,20 @@ const ExerciseSession = () => {
     repCount,
     lastROM,
     currentAngle,
+    currentAngles,
     wrongExerciseWarning,
+    direction,
+    repPhase,
+    holdProgress,
+    holdElapsedMs,
+    holdRequiredMs,
     getMotionData,
     reset,
   } = useMotionTracking(
     exercise?.correct_angles ?? undefined,
     exercise?.tracking_config ?? undefined,
+    activeSide ?? undefined,
+    holdSeconds,
   );
 
   // Track session-best angle for the ROM gauge
@@ -133,8 +208,12 @@ const ExerciseSession = () => {
       setSessionId(data.session_id);
       setSessionBestAngle(0);
       reset();
-      setPhase('active');
-      setCameraOn(true);
+      if (needsSideGate(exercise?.correct_angles)) {
+        setPhase('side_select');
+      } else {
+        setPhase('active');
+        setCameraOn(true);
+      }
     },
     onError: () => toast.error('Could not start session. Try again.'),
   });
@@ -161,6 +240,11 @@ const ExerciseSession = () => {
     completeMutation.mutate();
   };
 
+  const handleCancel = () => {
+    setCameraOn(false);
+    navigate('/client/plan');
+  };
+
   const formatTime = (s: number) =>
     `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 
@@ -182,6 +266,20 @@ const ExerciseSession = () => {
   // Pull rep joint rule for the ROM gauge
   const repRule = exercise?.correct_angles?.find((r: any) => r.rep_joint);
   const romStandard = repRule?.movement ? ROM_STANDARDS[repRule.movement] : null;
+
+  // ── SIDE SELECT PHASE ────────────────────────────────────────────────
+  if (phase === 'side_select') {
+    return (
+      <SideSelectScreen
+        jointLabel={targetJointLabel(exercise?.correct_angles)}
+        onSelect={(side) => {
+          setActiveSide(side);
+          setPhase('active');
+          setCameraOn(true);
+        }}
+      />
+    );
+  }
 
   // ── INTRO PHASE ──────────────────────────────────────────────────────
   if (phase === 'intro') {
@@ -260,6 +358,7 @@ const ExerciseSession = () => {
                 Place your device 6–8 feet away so your full body is visible.
                 {repRule?.side === 'left'  && ' Face the camera with your LEFT side visible.'}
                 {repRule?.side === 'right' && ' Face the camera with your RIGHT side visible.'}
+                {(!repRule?.side || repRule.side === 'bilateral') && ' You\'ll choose which side to track on the next screen.'}
               </p>
             </div>
           </div>
@@ -284,14 +383,20 @@ const ExerciseSession = () => {
       <div className="min-h-screen bg-black flex flex-col">
         {/* Top bar */}
         <div className="flex items-center justify-between p-4 bg-black/80 text-white">
-          <div>
-            <p className="font-display font-bold">{exercise.title}</p>
+          <button
+            onClick={handleCancel}
+            className="text-white/60 hover:text-white transition-colors text-sm shrink-0"
+          >
+            ← Cancel
+          </button>
+          <div className="text-center mx-3 min-w-0">
+            <p className="font-display font-bold truncate">{exercise.title}</p>
             <p className="text-white/60 text-xs">
               {exercise.pivot?.sets} sets · {exercise.pivot?.reps} reps
               {repRule?.movement && ` · ${ROM_STANDARDS[repRule.movement]?.label ?? ''}`}
             </p>
           </div>
-          <div className="text-right">
+          <div className="text-right shrink-0">
             <p className="font-mono font-bold text-lg">{formatTime(elapsed)}</p>
             <p className="text-white/60 text-xs">elapsed</p>
           </div>
@@ -317,6 +422,11 @@ const ExerciseSession = () => {
               onResults={processResults}
               isActive={cameraOn}
               jointRules={exercise?.correct_angles ?? undefined}
+              movementDirection={direction}
+              currentAngle={currentAngle}
+              movement={repRule?.movement}
+              currentAngles={currentAngles}
+              activeSide={activeSide ?? undefined}
             />
 
             {/* Form score — top left */}
@@ -356,12 +466,52 @@ const ExerciseSession = () => {
               </div>
             )}
 
-            {/* Side indicator when single-sided */}
-            {repRule?.side && repRule.side !== 'bilateral' && (
+            {/* Side indicator — shows selected side or PT-prescribed side */}
+            {(activeSide || (repRule?.side && repRule.side !== 'bilateral')) && (
               <div className="absolute bottom-3 right-3 bg-black/75 rounded-xl px-3 py-1.5">
                 <p className="text-white text-xs font-semibold uppercase tracking-wider">
-                  {repRule.side === 'left' ? '◀ Left' : 'Right ▶'}
+                  {(activeSide ?? repRule?.side) === 'left' ? '◀ Left' : 'Right ▶'}
                 </p>
+              </div>
+            )}
+
+            {/* Hold timer overlay — centred, only when hold is required and we're at PEAK */}
+            {holdRequiredMs > 0 && repPhase === 'PEAK' && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="flex flex-col items-center gap-2">
+                  {/* SVG ring */}
+                  <svg width="96" height="96" viewBox="0 0 96 96" className="drop-shadow-lg">
+                    {/* track */}
+                    <circle cx="48" cy="48" r="40"
+                      fill="rgba(0,0,0,0.55)"
+                      stroke="rgba(255,255,255,0.15)"
+                      strokeWidth="8"
+                    />
+                    {/* progress arc */}
+                    <circle cx="48" cy="48" r="40"
+                      fill="none"
+                      stroke="#E5197D"
+                      strokeWidth="8"
+                      strokeLinecap="round"
+                      strokeDasharray={`${2 * Math.PI * 40}`}
+                      strokeDashoffset={`${2 * Math.PI * 40 * (1 - holdProgress)}`}
+                      transform="rotate(-90 48 48)"
+                      style={{ transition: 'stroke-dashoffset 100ms linear' }}
+                    />
+                    {/* seconds remaining text */}
+                    <text x="48" y="44" textAnchor="middle" dominantBaseline="middle"
+                      fill="white" fontSize="22" fontWeight="bold" fontFamily="system-ui">
+                      {Math.ceil((holdRequiredMs - holdElapsedMs) / 1000)}
+                    </text>
+                    <text x="48" y="62" textAnchor="middle" dominantBaseline="middle"
+                      fill="rgba(255,255,255,0.7)" fontSize="10" fontFamily="system-ui">
+                      sec
+                    </text>
+                  </svg>
+                  <div className="bg-[#E5197D] text-white text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
+                    HOLD
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -457,7 +607,8 @@ const ExerciseSession = () => {
             </p>
             <div className="space-y-1.5 max-h-32 overflow-y-auto">
               {motionData.rep_history.map((rep: any, i: number) => {
-                const pct = Math.min(100, Math.round((rep.max / romStandard.max) * 100));
+                const angle = rep.peak_angle ?? rep.max ?? 0;
+                const pct = Math.min(100, Math.round((angle / romStandard.max) * 100));
                 return (
                   <div key={i} className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground w-10">Rep {i + 1}</span>
@@ -470,7 +621,7 @@ const ExerciseSession = () => {
                         }}
                       />
                     </div>
-                    <span className="text-xs font-medium w-12 text-right">{rep.max.toFixed(0)}°</span>
+                    <span className="text-xs font-medium w-12 text-right">{angle}°</span>
                   </div>
                 );
               })}

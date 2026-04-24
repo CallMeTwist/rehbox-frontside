@@ -12,16 +12,16 @@ export const ChatFilePreview = ({ file, onRemove }: ChatFilePreviewProps) => {
   const sizeKB  = (file.size / 1024).toFixed(1);
 
   return (
-    <div className="relative inline-flex items-center gap-2 border border-border rounded-xl bg-muted p-2 pr-3 max-w-xs">
+    <div className="relative inline-flex items-center gap-2 border border-border/60 rounded-2xl bg-card/80 backdrop-blur-sm p-2 pr-3 max-w-xs shadow-sm">
       {isImage ? (
         <img
           src={URL.createObjectURL(file)}
           alt="preview"
-          className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+          className="w-10 h-10 rounded-xl object-cover flex-shrink-0 ring-1 ring-border/60"
         />
       ) : (
-        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-          <FileText size={16} className="text-primary" />
+        <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center flex-shrink-0 shadow-[0_4px_14px_-4px_rgba(27,62,143,0.4)]">
+          <FileText size={16} className="text-white" />
         </div>
       )}
       <div className="min-w-0">

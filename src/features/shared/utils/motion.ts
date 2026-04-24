@@ -15,43 +15,49 @@ export interface PoseResult {
 // ── Standardised clinical ROM ranges (degrees) ────────────────────────
 // Source: established goniometric norms used in physiotherapy assessment.
 // These are the reference values shown in the session overlay and PT reports.
-export const ROM_STANDARDS: Record<string, { min: number; max: number; label: string; joint_group: string }> = {
+// `use_3d: true` → compute the angle from poseWorldLandmarks (metric 3D) instead
+// of the 2D image projection. Enable for movements where depth is load-bearing:
+// sagittal-plane flex/ext (arm forward, thigh forward, trunk forward) and
+// rotations (IR/ER, spine rotation). Coronal-plane moves (abduction) and
+// strict-sagittal moves already parallel to the camera (elbow, knee) stay 2D
+// because 2D is equally accurate there and more robust to world-landmark noise.
+export const ROM_STANDARDS: Record<string, { min: number; max: number; label: string; joint_group: string; use_3d?: boolean }> = {
   // Neck
-  neck_flexion:        { min: 0, max: 45,  label: 'Neck Flexion',        joint_group: 'neck' },
-  neck_extension:      { min: 0, max: 45,  label: 'Neck Extension',      joint_group: 'neck' },
-  neck_lateral:        { min: 0, max: 45,  label: 'Neck Lateral Tilt',   joint_group: 'neck' },
-  neck_rotation:       { min: 0, max: 60,  label: 'Neck Rotation',       joint_group: 'neck' },
+  neck_flexion:        { min: 0, max: 45,  label: 'Neck Flexion',          joint_group: 'neck',     use_3d: true },
+  neck_extension:      { min: 0, max: 45,  label: 'Neck Extension',        joint_group: 'neck',     use_3d: true },
+  neck_lateral:        { min: 0, max: 45,  label: 'Neck Lateral Tilt',     joint_group: 'neck' },
+  neck_rotation:       { min: 0, max: 60,  label: 'Neck Rotation',         joint_group: 'neck',     use_3d: true },
   // Shoulder
-  shoulder_flexion:    { min: 0, max: 180, label: 'Shoulder Flexion',    joint_group: 'shoulder' },
-  shoulder_extension:  { min: 0, max: 60,  label: 'Shoulder Extension',  joint_group: 'shoulder' },
-  shoulder_abduction:  { min: 0, max: 180, label: 'Shoulder Abduction',  joint_group: 'shoulder' },
-  shoulder_adduction:  { min: 0, max: 30,  label: 'Shoulder Adduction',  joint_group: 'shoulder' },
-  shoulder_ir:         { min: 0, max: 70,  label: 'Internal Rotation',   joint_group: 'shoulder' },
-  shoulder_er:         { min: 0, max: 90,  label: 'External Rotation',   joint_group: 'shoulder' },
+  shoulder_flexion:    { min: 0, max: 180, label: 'Shoulder Flexion',      joint_group: 'shoulder', use_3d: true },
+  shoulder_extension:  { min: 0, max: 60,  label: 'Shoulder Extension',    joint_group: 'shoulder', use_3d: true },
+  shoulder_abduction:  { min: 0, max: 180, label: 'Shoulder Abduction',    joint_group: 'shoulder' },
+  shoulder_adduction:  { min: 0, max: 30,  label: 'Shoulder Adduction',    joint_group: 'shoulder' },
+  shoulder_ir:         { min: 0, max: 70,  label: 'Internal Rotation',     joint_group: 'shoulder', use_3d: true },
+  shoulder_er:         { min: 0, max: 90,  label: 'External Rotation',     joint_group: 'shoulder', use_3d: true },
   // Wrist
-  wrist_flexion:       { min: 0, max: 80,  label: 'Wrist Flexion',       joint_group: 'wrist' },
-  wrist_extension:     { min: 0, max: 70,  label: 'Wrist Extension',     joint_group: 'wrist' },
+  wrist_flexion:       { min: 0, max: 80,  label: 'Wrist Flexion',         joint_group: 'wrist' },
+  wrist_extension:     { min: 0, max: 70,  label: 'Wrist Extension',       joint_group: 'wrist' },
   // Elbow
-  elbow_flexion:       { min: 0, max: 160, label: 'Elbow Flexion',       joint_group: 'elbow' },
-  elbow_extension:     { min: 0, max: 10,  label: 'Elbow Extension',     joint_group: 'elbow' },
-  elbow_hyperextension:{ min: 0, max: 15,  label: 'Elbow Hyperextension',joint_group: 'elbow' },
+  elbow_flexion:       { min: 0, max: 160, label: 'Elbow Flexion',         joint_group: 'elbow' },
+  elbow_extension:     { min: 0, max: 10,  label: 'Elbow Extension',       joint_group: 'elbow' },
+  elbow_hyperextension:{ min: 0, max: 15,  label: 'Elbow Hyperextension',  joint_group: 'elbow' },
   // Hip
-  hip_flexion:         { min: 0, max: 125, label: 'Hip Flexion',         joint_group: 'hip' },
-  hip_extension:       { min: 0, max: 15,  label: 'Hip Extension',       joint_group: 'hip' },
-  hip_abduction:       { min: 0, max: 45,  label: 'Hip Abduction',       joint_group: 'hip' },
-  hip_adduction:       { min: 0, max: 30,  label: 'Hip Adduction',       joint_group: 'hip' },
-  hip_ir:              { min: 0, max: 45,  label: 'Hip Internal Rotation', joint_group: 'hip' },
-  hip_er:              { min: 0, max: 45,  label: 'Hip External Rotation', joint_group: 'hip' },
+  hip_flexion:         { min: 0, max: 125, label: 'Hip Flexion',           joint_group: 'hip',      use_3d: true },
+  hip_extension:       { min: 0, max: 15,  label: 'Hip Extension',         joint_group: 'hip',      use_3d: true },
+  hip_abduction:       { min: 0, max: 45,  label: 'Hip Abduction',         joint_group: 'hip' },
+  hip_adduction:       { min: 0, max: 30,  label: 'Hip Adduction',         joint_group: 'hip' },
+  hip_ir:              { min: 0, max: 45,  label: 'Hip Internal Rotation', joint_group: 'hip',      use_3d: true },
+  hip_er:              { min: 0, max: 45,  label: 'Hip External Rotation', joint_group: 'hip',      use_3d: true },
   // Knee
-  knee_flexion:        { min: 0, max: 140, label: 'Knee Flexion',        joint_group: 'knee' },
-  knee_extension:      { min: 0, max: 140, label: 'Knee Extension',      joint_group: 'knee' },
+  knee_flexion:        { min: 0, max: 140, label: 'Knee Flexion',          joint_group: 'knee' },
+  knee_extension:      { min: 0, max: 140, label: 'Knee Extension',        joint_group: 'knee' },
   // Ankle
-  ankle_dorsiflexion:  { min: 0, max: 20,  label: 'Ankle Dorsiflexion',  joint_group: 'ankle' },
-  ankle_plantarflexion:{ min: 0, max: 50,  label: 'Ankle Plantarflexion', joint_group: 'ankle' },
+  ankle_dorsiflexion:  { min: 0, max: 20,  label: 'Ankle Dorsiflexion',    joint_group: 'ankle' },
+  ankle_plantarflexion:{ min: 0, max: 50,  label: 'Ankle Plantarflexion',  joint_group: 'ankle' },
   // Spine
-  spine_flexion:       { min: 0, max: 80,  label: 'Spine Flexion',       joint_group: 'spine' },
-  spine_extension:     { min: 0, max: 25,  label: 'Spine Extension',     joint_group: 'spine' },
-  spine_rotation:      { min: 0, max: 45,  label: 'Spine Rotation',      joint_group: 'spine' },
+  spine_flexion:       { min: 0, max: 80,  label: 'Spine Flexion',         joint_group: 'spine',    use_3d: true },
+  spine_extension:     { min: 0, max: 25,  label: 'Spine Extension',       joint_group: 'spine',    use_3d: true },
+  spine_rotation:      { min: 0, max: 45,  label: 'Spine Rotation',        joint_group: 'spine',    use_3d: true },
 };
 
 // ── MediaPipe landmark indices ─────────────────────────────────────────
@@ -142,8 +148,10 @@ export const JOINT_GROUPS: Record<string, {
 };
 
 /**
- * Goniometric angle at joint B formed by A→B and C→B vectors.
- * Uses the dot-product formula — stable for any 2-D orientation.
+ * Goniometric angle at joint B formed by A→B and C→B vectors (2D, image plane).
+ * Use for movements that play out in a plane parallel to the camera —
+ * abduction, elbow flexion, knee flexion. For depth-sensitive movements (flex/
+ * ext in the sagittal plane, IR/ER) use `calculateAngle3D` with world landmarks.
  */
 export function calculateAngle(
   a: PoseLandmark,
@@ -162,6 +170,26 @@ export function calculateAngle(
 }
 
 /**
+ * 3D goniometric angle at joint B — uses metric world-space coordinates.
+ * Prefer this for depth-sensitive movements (sagittal plane flex/ext, rotations).
+ * Accepts any landmark-shaped {x,y,z} points; visibility gating is handled by
+ * the caller against the 2D landmarks (world landmarks don't carry it).
+ */
+export function calculateAngle3D(
+  a: { x: number; y: number; z: number },
+  b: { x: number; y: number; z: number },
+  c: { x: number; y: number; z: number },
+): number {
+  const bax = a.x - b.x, bay = a.y - b.y, baz = a.z - b.z;
+  const bcx = c.x - b.x, bcy = c.y - b.y, bcz = c.z - b.z;
+  const dot    = bax * bcx + bay * bcy + baz * bcz;
+  const magBA  = Math.sqrt(bax * bax + bay * bay + baz * baz);
+  const magBC  = Math.sqrt(bcx * bcx + bcy * bcy + bcz * bcz);
+  const cosine = dot / (magBA * magBC + 1e-6);
+  return (Math.acos(Math.max(-1, Math.min(1, cosine))) * 180) / Math.PI;
+}
+
+/**
  * Compute the angle for a rule, accounting for side (left / right / bilateral).
  *
  * - 'left'/'right' → only track that triplet.
@@ -174,8 +202,21 @@ export function computeAngleForRule(
   landmarks: PoseLandmark[],
   triplet: [number, number, number],
   side: 'left' | 'right' | 'bilateral' = 'bilateral',
+  /** Pass `results.poseWorldLandmarks` to enable 3D math when `use3D` is true. */
+  worldLandmarks?: PoseLandmark[],
+  /** When true AND worldLandmarks provided, compute in metric 3D space. */
+  use3D: boolean = false,
 ): number | null {
   const threshold = VISIBILITY_THRESHOLD;
+  // Visibility gating ALWAYS uses the 2D landmarks — world landmarks don't
+  // carry visibility. This matches MediaPipe's intended usage.
+  const useWorld = use3D && !!worldLandmarks;
+
+  function meanVis(t: [number, number, number]): number {
+    const a = landmarks[t[0]], b = landmarks[t[1]], c = landmarks[t[2]];
+    if (!a || !b || !c) return 0;
+    return ((a.visibility ?? 0) + (b.visibility ?? 0) + (c.visibility ?? 0)) / 3;
+  }
 
   function tryTriplet(t: [number, number, number]): number | null {
     const a = landmarks[t[0]];
@@ -189,6 +230,13 @@ export function computeAngleForRule(
     ) {
       return null;
     }
+    if (useWorld) {
+      const wa = worldLandmarks![t[0]];
+      const wb = worldLandmarks![t[1]];
+      const wc = worldLandmarks![t[2]];
+      if (!wa || !wb || !wc) return calculateAngle(a, b, c);
+      return calculateAngle3D(wa, wb, wc);
+    }
     return calculateAngle(a, b, c);
   }
 
@@ -199,17 +247,25 @@ export function computeAngleForRule(
   const rightAngle   = tryTriplet(rightTriplet);
   if (side === 'right') return rightAngle;
 
-  // Bilateral: prefer the side with better visibility; average when both available
+  // Bilateral: one side visible → use it. Both visible → pick the clearer side.
+  // Averaging left+right is nonsense for asymmetric unilateral movements.
   if (leftAngle === null && rightAngle === null) return null;
   if (leftAngle === null) return rightAngle;
   if (rightAngle === null) return leftAngle;
-  return (leftAngle + rightAngle) / 2;
+  return meanVis(rightTriplet) > meanVis(triplet) ? rightAngle : leftAngle;
 }
 
 // ── Rep tracking ──────────────────────────────────────────────────────
 
 export const FORM_GRACE_DEGREES  = 15;
+// Per-landmark visibility gates. Three tiers, each with a distinct purpose —
+// don't collapse into one constant.
+/** Joint-triplet gate: all three landmarks must clear this before we compute an angle. */
 export const VISIBILITY_THRESHOLD = 0.6;
+/** Pose-presence gate: how many landmarks must be this visible to consider the user in-frame at all. */
+export const POSE_PRESENCE_THRESHOLD = 0.5;
+/** Frame-quality gate: landmarks at or above this are considered unambiguously clear (used for coverage scoring). */
+export const LANDMARK_CLEAR_THRESHOLD = 0.7;
 
 export interface JointRule {
   joint: string;
@@ -367,8 +423,11 @@ export interface FormAnalysisResult {
  * Handles bilateral tracking and PHP-encoded landmark objects automatically.
  */
 export function analyzeForm(
-  landmarks: PoseLandmark[],
-  rules:     JointRule[],
+  landmarks:      PoseLandmark[],
+  rules:          JointRule[],
+  /** Optional — passing world landmarks enables 3D form scoring for movements
+   * flagged `use_3d` in ROM_STANDARDS. Falls back to 2D when omitted. */
+  worldLandmarks?: PoseLandmark[],
 ): FormAnalysisResult {
   if (!landmarks.length || !rules.length) {
     return { score: 0, feedback: '', jointScores: {} };
@@ -386,7 +445,8 @@ export function analyzeForm(
       : [rule.landmarks[0], rule.landmarks[1], rule.landmarks[2]];
 
     const side  = rule.side ?? 'bilateral';
-    const angle = computeAngleForRule(landmarks, triplet, side);
+    const use3D = !!(rule.movement && ROM_STANDARDS[rule.movement]?.use_3d);
+    const angle = computeAngleForRule(landmarks, triplet, side, worldLandmarks, use3D);
     if (angle === null) continue; // landmarks invisible — don't penalise
 
     const weight = rule.weight ?? 1.0;
@@ -414,7 +474,7 @@ export function analyzeForm(
 
   // All joints invisible — fall back to visibility-based score
   if (totalWeight === 0) {
-    const visibleCount = landmarks.filter((l) => (l.visibility ?? 0) > 0.7).length;
+    const visibleCount = landmarks.filter((l) => (l.visibility ?? 0) > LANDMARK_CLEAR_THRESHOLD).length;
     return {
       score:    Math.round((visibleCount / 33) * 100),
       feedback: 'Move closer to the camera',
@@ -450,7 +510,7 @@ export function drawSkeleton(
   for (const [start, end] of SKELETON_CONNECTIONS) {
     const a = landmarks[start];
     const b = landmarks[end];
-    if (a && b && a.visibility > 0.5 && b.visibility > 0.5) {
+    if (a && b && a.visibility > POSE_PRESENCE_THRESHOLD && b.visibility > POSE_PRESENCE_THRESHOLD) {
       ctx.beginPath();
       ctx.moveTo(a.x * width, a.y * height);
       ctx.lineTo(b.x * width, b.y * height);
@@ -461,7 +521,7 @@ export function drawSkeleton(
   // Joints — colour by ROM status when provided
   for (let i = 0; i < landmarks.length; i++) {
     const lm = landmarks[i];
-    if (!lm || lm.visibility <= 0.5) continue;
+    if (!lm || lm.visibility <= POSE_PRESENCE_THRESHOLD) continue;
     const status = jointStatus?.[i];
     ctx.fillStyle =
       status === 'error'   ? '#EF4444' :

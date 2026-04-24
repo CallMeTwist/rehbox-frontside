@@ -1,65 +1,82 @@
 // src/features/client-dashboard/pages/Chat.tsx
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Send, Paperclip } from 'lucide-react';
+import { Send, Paperclip, ShieldAlert } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
-import { ChatFilePreview, MessageFile } from '../components/ChatFilePreview';
+import { ChatFilePreview } from '../components/ChatFilePreview';
 import { useAuthStore } from '@/store/authStore';
 import { useOnlineUsers } from '@/features/shared/hooks/useOnlineUsers';
 import getEcho, { hasEcho } from '@/features/shared/utils/echo';
+import { useChatTyping } from '@/features/shared/hooks/useChatTyping';
+import { useChatRead } from '@/features/shared/hooks/useChatRead';
+import {
+  ChatBubble,
+  DaySeparator,
+  TypingIndicator,
+  annotateMessages,
+  dayLabel,
+  type ChatMessage,
+} from '@/features/shared/components/chat/ChatPrimitives';
 
 const Chat = () => {
-  const user   = useAuthStore((s) => s.user);
-  const token  = useAuthStore((s) => s.token);
-  const qc     = useQueryClient();
-  const [text, setText]         = useState('');
-  const [file, setFile]         = useState<File | null>(null);
-  const fileInputRef            = useRef<HTMLInputElement>(null);
-  const bottomRef               = useRef<HTMLDivElement>(null);
-  const { isOnline }    = useOnlineUsers();
+  const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+  const qc = useQueryClient();
+  const [text, setText] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { isOnline } = useOnlineUsers();
 
   const isClient = user?.role === 'client';
 
-  // Fetch profile to get client.id and physiotherapist info
   const { data: profileData } = useQuery({
     queryKey: ['client-profile'],
-    queryFn:  () => api.get('/client/profile').then(r => r.data),
-    enabled:  isClient,
+    queryFn: () => api.get('/client/profile').then((r) => r.data),
+    enabled: isClient,
   });
 
   const clientId = profileData?.client?.id ?? user?.client_id;
-  const pt       = profileData?.client?.physiotherapist;
-  const ptName   = pt?.name ?? 'Your Physiotherapist';
+  const pt = profileData?.client?.physiotherapist;
+  const ptName = pt?.name ?? 'Your Physiotherapist';
   const ptUserId = pt?.user_id;
 
-  // Fetch messages
-  const { data: messages = [], isLoading } = useQuery({
+  const { data: messages = [], isLoading } = useQuery<ChatMessage[]>({
     queryKey: ['client-chat'],
     queryFn: async () => {
-      const res  = await api.get('/client/chat');
+      const res = await api.get('/client/chat');
       const data = res.data;
       return Array.isArray(data) ? data : (data.messages ?? []);
     },
     enabled: isClient,
   });
 
-  // Subscribe to real-time chat channel — requires clientId to be known
+  const { peerTyping, sendTyping, sendStoppedTyping } = useChatTyping(clientId, user?.id);
+  const { peerLastReadMessageId, markRead } = useChatRead({
+    scope: 'client',
+    clientId,
+    selfUserId: user?.id,
+  });
+
+  // Real-time message stream
   useEffect(() => {
     if (!clientId || !token) return;
-
     const channelName = `chat.${clientId}`;
 
     try {
       const channel = getEcho().private(channelName);
-      channel.listen('.message.sent', (msg: any) => {
-        qc.setQueryData(
-          ['client-chat'],
-          (old: any[] = []) => {
-            if (old.find((m) => m.id === msg.id)) return old;
-            return [...old, msg];
-          }
-        );
+      channel.listen('.message.sent', (msg: ChatMessage) => {
+        qc.setQueryData<ChatMessage[]>(['client-chat'], (old = []) => {
+          if (old.find((m) => m.id === msg.id)) return old;
+          return [...old, msg];
+        });
+        // Auto-mark-read if chat is open and tab focused
+        if (document.visibilityState === 'visible' && msg.sender_id !== user?.id) {
+          markRead();
+          qc.invalidateQueries({ queryKey: ['client-chat-unread'] });
+        }
       });
     } catch (err) {
       console.warn('Client chat socket error:', err);
@@ -68,16 +85,35 @@ const Chat = () => {
     return () => {
       try {
         if (hasEcho()) getEcho().leaveChannel(channelName);
-      } catch {}
+      } catch {
+        /* noop */
+      }
     };
-  }, [clientId, token]);
+  }, [clientId, token, user?.id, qc, markRead]);
 
-  // Scroll to bottom on new messages
+  // Mark read on open + whenever message list grows while focused
+  useEffect(() => {
+    if (!clientId || messages.length === 0) return;
+    if (document.visibilityState !== 'visible') return;
+    const hasUnreadForMe = messages.some((m) => m.receiver_id === user?.id && !m.read_at);
+    if (hasUnreadForMe) {
+      markRead();
+      qc.invalidateQueries({ queryKey: ['client-chat-unread'] });
+    }
+  }, [clientId, messages, user?.id, markRead, qc]);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 140) + 'px';
+  }, [text]);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, peerTyping]);
 
-  // Send message
   const sendMutation = useMutation({
     mutationFn: (body: string) => {
       if (file) {
@@ -91,16 +127,18 @@ const Chat = () => {
       return api.post('/client/chat', { body });
     },
     onSuccess: ({ data }) => {
-      const newMsg = data.message ?? data;
-      qc.setQueryData(
-        ['client-chat'],
-        (old: any[] = []) => {
-          if (old.find((m) => m.id === newMsg.id)) return old;
-          return [...old, newMsg];
-        }
-      );
+      const newMsg: ChatMessage = data.message ?? data;
+      qc.setQueryData<ChatMessage[]>(['client-chat'], (old = []) => {
+        if (old.find((m) => m.id === newMsg.id)) return old;
+        return [...old, newMsg];
+      });
       setText('');
       setFile(null);
+      sendStoppedTyping();
+    },
+    onError: (e: any) => {
+      const msg = e?.response?.data?.message ?? 'Failed to send message';
+      toast.error(msg);
     },
   });
 
@@ -111,101 +149,141 @@ const Chat = () => {
 
   const ptOnline = ptUserId ? isOnline(ptUserId) : false;
 
+  // Annotate and segment by day
+  const segmented = useMemo(() => {
+    const annotated = annotateMessages(messages);
+    const out: Array<{ type: 'day'; key: string; label: string } | { type: 'msg'; key: string; data: (typeof annotated)[number] }> = [];
+    let lastDay = '';
+    for (const a of annotated) {
+      const d = new Date(a.msg.created_at).toDateString();
+      if (d !== lastDay) {
+        out.push({ type: 'day', key: `day-${d}`, label: dayLabel(a.msg.created_at) });
+        lastDay = d;
+      }
+      out.push({ type: 'msg', key: `m-${a.msg.id}`, data: a });
+    }
+    return out;
+  }, [messages]);
+
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
+    <div className="relative flex flex-col h-[calc(100dvh-4rem)] overflow-hidden">
+      {/* Ambient backdrop */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.55]"
+        style={{
+          background:
+            'radial-gradient(ellipse 60% 50% at 15% 0%, hsl(var(--primary) / 0.10), transparent 60%), radial-gradient(ellipse 50% 40% at 90% 100%, hsl(var(--hot-pink) / 0.08), transparent 60%)',
+        }}
+      />
 
       {/* Header */}
-      <div className="p-4 border-b border-border bg-card flex-shrink-0">
+      <div className="relative p-3 md:p-4 border-b border-border/60 bg-card/70 backdrop-blur-xl flex-shrink-0 z-10">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center font-bold text-white">
+            <div className="w-11 h-11 rounded-full gradient-primary flex items-center justify-center font-semibold text-white shadow-[0_4px_14px_-4px_rgba(27,62,143,0.5)] ring-2 ring-white/50">
               {ptName.charAt(0).toUpperCase()}
             </div>
             {pt && (
-              <span
-                className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-card ${
-                  ptOnline ? 'bg-success' : 'bg-muted-foreground'
-                }`}
-              />
+              <>
+                <span
+                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-card ${
+                    ptOnline ? 'bg-success' : 'bg-muted-foreground'
+                  }`}
+                />
+                {ptOnline && (
+                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-success/60 animate-ping" />
+                )}
+              </>
             )}
           </div>
-          <div>
-            <p className="font-semibold text-sm">{ptName}</p>
+          <div className="min-w-0">
+            <p className="font-display font-semibold text-sm truncate">{ptName}</p>
             {pt ? (
-              <p className={`text-xs font-medium ${ptOnline ? 'text-success' : 'text-muted-foreground'}`}>
-                {ptOnline ? '● Online' : '○ Offline'}
+              <p className={`text-[11px] font-medium ${ptOnline ? 'text-success' : 'text-muted-foreground'}`}>
+                {ptOnline ? 'Online now' : 'Offline'}
               </p>
             ) : (
-              <p className="text-xs text-muted-foreground">Connect with a PT to start chatting</p>
+              <p className="text-[11px] text-muted-foreground">Connect with a PT to start chatting</p>
             )}
           </div>
         </div>
       </div>
 
+      {/* Safety notice */}
+      {pt && messages.length === 0 && !isLoading && (
+        <div className="relative mx-3 md:mx-4 mt-3 flex items-start gap-2 bg-amber-50/80 backdrop-blur-sm border border-amber-200/60 text-amber-900 text-[11px] rounded-xl p-2.5 z-10">
+          <ShieldAlert size={14} className="flex-shrink-0 mt-0.5" />
+          <p className="leading-relaxed">
+            Chat is for non-urgent communication with your physiotherapist. If this is a medical emergency, call your local emergency number.
+          </p>
+        </div>
+      )}
+
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="relative flex-1 overflow-y-auto overscroll-contain px-3 md:px-4 py-4 space-y-1.5 z-[1] scrollbar-thin">
         {isLoading ? (
           <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
+            {[1, 2, 3, 4].map((i) => (
               <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
-                <div className="h-10 w-48 bg-muted rounded-2xl animate-pulse" />
+                <div
+                  className={`h-10 rounded-2xl animate-pulse ${
+                    i % 2 === 0 ? 'w-40 bg-primary/20' : 'w-52 bg-muted'
+                  }`}
+                />
               </div>
             ))}
           </div>
         ) : messages.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <p className="text-4xl mb-3">💬</p>
-            <p className="font-medium text-sm">No messages yet</p>
-            <p className="text-xs mt-1">Send a message to your physiotherapist</p>
+          <div className="flex flex-col items-center justify-center h-full text-center">
+            <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mb-4 shadow-[0_8px_30px_-10px_rgba(27,62,143,0.5)]">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </div>
+            <p className="font-display font-semibold text-sm mb-1">Start the conversation</p>
+            <p className="text-xs text-muted-foreground max-w-xs">
+              Ask questions about your plan, log how a session felt, or send a photo of your progress.
+            </p>
           </div>
         ) : (
-          messages.map((msg: any) => {
-            const isOwn = msg.sender_id === user?.id;
-            return (
-              <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
-                    isOwn
-                      ? 'gradient-primary text-white rounded-br-sm'
-                      : 'bg-muted rounded-bl-sm'
-                  }`}
-                >
-                  {!isOwn && (
-                    <p className="text-xs font-semibold mb-0.5 opacity-60">
-                      {msg.sender?.name ?? ptName}
-                    </p>
-                  )}
-                  {msg.body && <p className="text-sm leading-relaxed">{msg.body}</p>}
-                  {msg.file_url && (
-                    <MessageFile
-                      fileUrl={msg.file_url}
-                      fileType={msg.file_type ?? ''}
-                      fileName={msg.file_name ?? 'file'}
-                      fileSize={msg.file_size ?? 0}
-                    />
-                  )}
-                  <p className={`text-xs mt-1 ${isOwn ? 'text-white/60' : 'text-muted-foreground'}`}>
-                    {new Date(msg.created_at).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
-                </div>
-              </div>
-            );
-          })
+          <>
+            {segmented.map((item) =>
+              item.type === 'day' ? (
+                <DaySeparator key={item.key} label={item.label} />
+              ) : (
+                <ChatBubble
+                  key={item.key}
+                  msg={item.data.msg}
+                  isOwn={item.data.msg.sender_id === user?.id}
+                  showTail={item.data.showTail}
+                  showTime={item.data.showTime}
+                  showSenderName={item.data.showSenderName}
+                  isRead={
+                    item.data.msg.sender_id === user?.id &&
+                    peerLastReadMessageId !== null &&
+                    item.data.msg.id <= peerLastReadMessageId
+                  }
+                />
+              )
+            )}
+            {peerTyping && <TypingIndicator name={peerTyping.name} />}
+          </>
         )}
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div className="p-4 border-t border-border bg-card flex-shrink-0">
+      {/* Composer */}
+      <div
+        className="relative border-t border-border/60 bg-card/70 backdrop-blur-xl flex-shrink-0 z-10"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         {!pt ? (
-          <p className="text-center text-sm text-muted-foreground py-2">
+          <p className="text-center text-sm text-muted-foreground py-4">
             Link a physiotherapist to start messaging
           </p>
         ) : (
-          <>
+          <div className="p-3 md:p-4">
             {file && (
               <div className="mb-2">
                 <ChatFilePreview file={file} onRemove={() => setFile(null)} />
@@ -214,7 +292,7 @@ const Chat = () => {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*,.pdf"
+              accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
               className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0];
@@ -226,31 +304,48 @@ const Chat = () => {
                 e.target.value = '';
               }}
             />
-            <div className="flex gap-3">
+            <div className="flex items-end gap-2">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-10 h-10 rounded-xl border border-border flex items-center justify-center hover:bg-muted transition-colors flex-shrink-0"
+                aria-label="Attach file"
+                className="w-11 h-11 rounded-2xl bg-card border border-border flex items-center justify-center hover:bg-muted hover:border-primary/40 transition-all flex-shrink-0"
               >
-                <Paperclip size={16} className="text-muted-foreground" />
+                <Paperclip size={17} className="text-muted-foreground" />
               </button>
-              <input
-                type="text"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-                placeholder="Type a message..."
-                className="flex-1 bg-muted rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-              />
+              <div className="flex-1 bg-card border border-border rounded-2xl focus-within:border-primary/50 focus-within:shadow-[0_0_0_4px_hsl(var(--primary)/0.08)] transition-all">
+                <textarea
+                  ref={textareaRef}
+                  rows={1}
+                  value={text}
+                  onChange={(e) => {
+                    setText(e.target.value);
+                    if (user?.name && e.target.value.trim().length > 0) sendTyping(user.name);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  onBlur={() => sendStoppedTyping()}
+                  placeholder="Type a message…"
+                  className="w-full bg-transparent px-4 py-3 text-sm resize-none focus:outline-none placeholder:text-muted-foreground/70 leading-snug max-h-[140px]"
+                />
+              </div>
               <button
                 onClick={handleSend}
                 disabled={(!text.trim() && !file) || sendMutation.isPending}
-                className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center text-white disabled:opacity-40 transition"
+                aria-label="Send message"
+                className="w-11 h-11 gradient-pink rounded-2xl flex items-center justify-center text-white shadow-[0_6px_20px_-6px_rgba(229,25,125,0.6)] hover:shadow-[0_6px_22px_-4px_rgba(229,25,125,0.7)] active:scale-95 disabled:opacity-40 disabled:shadow-none transition-all flex-shrink-0"
               >
-                <Send size={16} />
+                <Send size={17} className="translate-x-[1px]" />
               </button>
             </div>
-          </>
+            {text.length > 4500 && (
+              <p className="text-[10px] text-muted-foreground mt-1 text-right">{text.length} / 5000</p>
+            )}
+          </div>
         )}
       </div>
     </div>
