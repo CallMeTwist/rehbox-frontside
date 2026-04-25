@@ -1,12 +1,16 @@
 import { useState } from 'react';
 import { useMyPlan } from '../hooks/useMyPlan';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Lock, ChevronDown, ChevronUp, Play, CheckCircle, PauseCircle, Clock, Dumbbell, Pencil, Trash2 } from 'lucide-react';
 import api from '@/features/shared/utils/api';
 import { useIsFree } from '@/store/authStore';
+import ExerciseGridCard from '../components/ExerciseGridCard';
+import MarkDoneSheet from '../components/MarkDoneSheet';
+
+type MarkingDone = { id: number | string; title: string } | null;
 
 const STATUS_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   active:    { label: 'Active',    color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', icon: <Play size={11} /> },
@@ -23,7 +27,17 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function PlanCard({ plan, defaultOpen }: { plan: any; defaultOpen?: boolean }) {
+function PlanCard({
+  plan,
+  defaultOpen,
+  onExerciseTap,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  plan: any;
+  defaultOpen?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onExerciseTap: (ex: any) => void;
+}) {
   const [open, setOpen] = useState(defaultOpen ?? false);
   const isActive = plan.status === 'active';
   const isSelfBuilt = plan.is_self_built === true;
@@ -131,35 +145,26 @@ function PlanCard({ plan, defaultOpen }: { plan: any; defaultOpen?: boolean }) {
             <p className="text-sm text-muted-foreground text-center py-4">No exercises in this plan yet.</p>
           )}
 
-          {plan.exercises?.map((ex: any, i: number) => (
-            <div
-              key={ex.id}
-              className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-3 group"
-            >
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
-                {i + 1}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">{ex.title}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {ex.pivot?.sets} sets · {ex.pivot?.reps} reps
-                  {ex.pivot?.hold_seconds > 0 && ` · ${ex.pivot.hold_seconds}s hold`}
-                </p>
-                {ex.pivot?.pt_notes && (
-                  <p className="text-xs text-primary mt-0.5 italic">💬 {ex.pivot.pt_notes}</p>
-                )}
-              </div>
-              {isActive && (
-                <Link
-                  to={`/client/session/${ex.id}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex-shrink-0 gradient-primary text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-primary hover:opacity-90 flex items-center gap-1.5"
-                >
-                  <Play size={12} /> Start
-                </Link>
-              )}
+          {plan.exercises?.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {plan.exercises.map((ex: any, i: number) => (
+                <ExerciseGridCard
+                  key={ex.id}
+                  exercise={{
+                    id: ex.id,
+                    title: ex.title,
+                    illustration_url: ex.illustration_url,
+                    sets: ex.pivot?.sets ?? ex.sets,
+                    reps: ex.pivot?.reps ?? ex.reps,
+                    scheduled_days: ex.pivot?.scheduled_days ?? ex.scheduled_days,
+                    completed: ex.completed,
+                  }}
+                  onTap={() => onExerciseTap(ex)}
+                  delay={i * 50}
+                />
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>
@@ -169,6 +174,18 @@ function PlanCard({ plan, defaultOpen }: { plan: any; defaultOpen?: boolean }) {
 const MyPlan = () => {
   const { data, isLoading, error } = useMyPlan();
   const isFree = useIsFree();
+  const navigate = useNavigate();
+  const [markingDone, setMarkingDone] = useState<MarkingDone>(null);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleTap = (ex: any) => {
+    if (ex.completed) return;
+    if (isFree) {
+      setMarkingDone({ id: ex.id, title: ex.title });
+    } else {
+      navigate(`/client/session/${ex.id}`);
+    }
+  };
 
   if ((error as any)?.response?.status === 402) {
     return (
@@ -283,7 +300,7 @@ const MyPlan = () => {
           {plans
             .filter((p) => p.status === 'active')
             .map((plan, i) => (
-              <PlanCard key={plan.id} plan={plan} defaultOpen={i === 0} />
+              <PlanCard key={plan.id} plan={plan} defaultOpen={i === 0} onExerciseTap={handleTap} />
             ))}
         </div>
       )}
@@ -298,10 +315,12 @@ const MyPlan = () => {
             </h2>
           </div>
           {otherPlans.map((plan) => (
-            <PlanCard key={plan.id} plan={plan} defaultOpen={false} />
+            <PlanCard key={plan.id} plan={plan} defaultOpen={false} onExerciseTap={handleTap} />
           ))}
         </div>
       )}
+
+      <MarkDoneSheet exercise={markingDone} onClose={() => setMarkingDone(null)} />
     </div>
   );
 };
