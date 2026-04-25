@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import { useMyPlan } from '../hooks/useMyPlan';
 import { Link } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Lock, ChevronDown, ChevronUp, Play, CheckCircle, PauseCircle, Clock } from 'lucide-react';
+import { Lock, ChevronDown, ChevronUp, Play, CheckCircle, PauseCircle, Clock, Dumbbell, Pencil, Trash2 } from 'lucide-react';
+import api from '@/features/shared/utils/api';
+import { useIsFree } from '@/store/authStore';
 
 const STATUS_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   active:    { label: 'Active',    color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', icon: <Play size={11} /> },
@@ -22,6 +26,29 @@ function StatusBadge({ status }: { status: string }) {
 function PlanCard({ plan, defaultOpen }: { plan: any; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen ?? false);
   const isActive = plan.status === 'active';
+  const isSelfBuilt = plan.is_self_built === true;
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: () => api.delete(`/client/plans/self/${plan.id}`).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['client-plan'] });
+      toast.success('Plan deleted');
+    },
+    onError: (err: unknown) => {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        'Could not delete plan';
+      toast.error(message);
+    },
+  });
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm('Delete this plan? This cannot be undone.')) {
+      deleteMutation.mutate();
+    }
+  };
 
   const wasUpdated = plan.updated_at && plan.created_at &&
     new Date(plan.updated_at).getTime() - new Date(plan.created_at).getTime() > 60_000;
@@ -74,6 +101,25 @@ function PlanCard({ plan, defaultOpen }: { plan: any; defaultOpen?: boolean }) {
       {/* Expanded exercises */}
       {open && (
         <div className="px-5 pb-5 space-y-2 border-t border-border/60 pt-4">
+          {isSelfBuilt && (
+            <div className="flex items-center gap-3 mb-3">
+              <Link
+                to="/client/plan/build"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+              >
+                <Pencil size={12} /> Edit
+              </Link>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleteMutation.isPending}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-destructive hover:underline disabled:opacity-50"
+              >
+                <Trash2 size={12} /> {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          )}
           {plan.notes && (
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 mb-3">
               <p className="text-xs font-semibold text-primary mb-0.5">Note from your Physiotherapist</p>
@@ -122,6 +168,7 @@ function PlanCard({ plan, defaultOpen }: { plan: any; defaultOpen?: boolean }) {
 
 const MyPlan = () => {
   const { data, isLoading, error } = useMyPlan();
+  const isFree = useIsFree();
 
   if ((error as any)?.response?.status === 402) {
     return (
@@ -161,6 +208,27 @@ const MyPlan = () => {
   const compliance   = data?.compliance_rate ?? 0;
 
   if (plans.length === 0) {
+    if (isFree) {
+      return (
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="bg-card rounded-2xl border border-border p-10 text-center max-w-sm">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Dumbbell size={28} className="text-primary" />
+            </div>
+            <h2 className="font-display font-bold text-xl mb-2">No plan yet</h2>
+            <p className="text-muted-foreground text-sm mb-6">
+              Build a simple plan for yourself — pick a few exercises and the days you'll do them.
+            </p>
+            <Link
+              to="/client/plan/build"
+              className="block w-full gradient-primary text-white rounded-xl py-3 font-semibold text-center shadow-primary"
+            >
+              Build My Plan
+            </Link>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">

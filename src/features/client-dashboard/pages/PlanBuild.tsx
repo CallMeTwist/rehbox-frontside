@@ -59,8 +59,11 @@ const PlanBuild = () => {
       toast.success("Plan saved!");
       navigate("/client/plan");
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? "Could not save plan");
+    onError: (err: unknown) => {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        "Could not save plan";
+      toast.error(message);
     },
   });
 
