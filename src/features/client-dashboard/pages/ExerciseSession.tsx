@@ -1,7 +1,7 @@
 // src/features/client-dashboard/pages/ExerciseSession.tsx
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
 import { CameraTracker } from '../components/CameraTracker';
@@ -9,6 +9,7 @@ import { useMotionTracking } from '../hooks/useMotionTracking';
 import { useMyPlan } from '../hooks/useMyPlan';
 import VideoPlayer from '@/features/shared/components/VideoPlayer';
 import { ROM_STANDARDS } from '@/features/shared/utils/motion';
+import { useAuthStore, useIsFree } from '@/store/authStore';
 
 type Phase = 'intro' | 'side_select' | 'active' | 'complete';
 type Side = 'left' | 'right';
@@ -137,8 +138,73 @@ function ROMGauge({ jointName, movement, currentAngle, sessionBest }: ROMGaugePr
   );
 }
 
+// ── Free-tier "Mark as Done" minimal session ─────────────────────────
+const MarkAsDoneSession = ({ exerciseId }: { exerciseId: string }) => {
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+
+  const { data: libraryData } = useQuery({
+    queryKey: ['client-exercises-library', 'flat'],
+    queryFn: async () => (await api.get('/client/exercises')).data.data,
+    enabled: user?.role === 'client',
+  });
+
+  const exercise = Array.isArray(libraryData)
+    ? (libraryData as Array<{ id: number | string; title: string; description?: string; illustration_url?: string | null }>).find(
+        (e) => String(e.id) === String(exerciseId),
+      )
+    : undefined;
+
+  const logCompletion = useMutation({
+    mutationFn: async () =>
+      (await api.post(`/client/exercises/${exerciseId}/log-completion`)).data,
+    onSuccess: () => {
+      toast.success('Logged! 💪');
+      navigate('/client/exercises');
+    },
+    onError: () => {
+      toast.error("Couldn't log completion. Try again.");
+    },
+  });
+
+  if (!exercise) {
+    return <div className="p-6 text-center text-muted-foreground">Loading…</div>;
+  }
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+      {exercise.illustration_url && (
+        <img
+          src={exercise.illustration_url}
+          alt={exercise.title}
+          className="w-40 h-40 rounded-2xl object-cover mb-6"
+        />
+      )}
+      <h1 className="font-display font-bold text-2xl mb-2 text-center">{exercise.title}</h1>
+      {exercise.description && (
+        <p className="text-muted-foreground mb-8 text-center max-w-sm">
+          {exercise.description}
+        </p>
+      )}
+      <button
+        onClick={() => logCompletion.mutate()}
+        disabled={logCompletion.isPending}
+        className="w-full max-w-xs gradient-primary text-white font-bold py-4 rounded-2xl shadow-primary hover:opacity-90 disabled:opacity-50"
+      >
+        {logCompletion.isPending ? 'Saving…' : "I'm done ✓"}
+      </button>
+      <button
+        onClick={() => navigate('/client/exercises')}
+        className="mt-4 text-sm text-muted-foreground hover:text-foreground"
+      >
+        ← Back
+      </button>
+    </div>
+  );
+};
+
 // ── Main ExerciseSession ──────────────────────────────────────────────
-const ExerciseSession = () => {
+const PaidExerciseSession = () => {
   const { exerciseId } = useParams<{ exerciseId: string }>();
   const navigate       = useNavigate();
   const [phase, setPhase]           = useState<Phase>('intro');
@@ -664,6 +730,15 @@ const ExerciseSession = () => {
       </div>
     </div>
   );
+};
+
+const ExerciseSession = () => {
+  const { exerciseId } = useParams<{ exerciseId: string }>();
+  const isFree = useIsFree();
+  if (isFree) {
+    return <MarkAsDoneSession exerciseId={exerciseId ?? ''} />;
+  }
+  return <PaidExerciseSession />;
 };
 
 export default ExerciseSession;
