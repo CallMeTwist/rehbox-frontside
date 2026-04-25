@@ -54,7 +54,7 @@ export function usePTRegister() {
     mutationFn: (formData: FormData) =>
       api.post('/auth/pt/register', formData),
     onSuccess: ({ data }) => {
-      setAuth(data.user, data.token);
+      setAuth({ ...data.user, subscriptionPlan: data.user.subscription_plan, assessmentCompletedAt: data.user.assessment_completed_at }, data.token);
       toast.success('Registration submitted! Awaiting vetting (up to 48hrs).');
       navigate('/pt/home');
     },
@@ -80,7 +80,7 @@ export function useClientRegister() {
     mutationFn: (data: Record<string, string>) =>
       api.post('/auth/client/register', data),
     onSuccess: ({ data }) => {
-      setAuth(data.user, data.token);
+      setAuth({ ...data.user, subscriptionPlan: data.user.subscription_plan, assessmentCompletedAt: data.user.assessment_completed_at }, data.token);
       toast.success('Welcome to ReHboX!');
       navigate('/client/home');
     },
@@ -98,7 +98,7 @@ export function usePTLogin() {
     mutationFn: (data: { email: string; password: string }) =>
       api.post('/auth/pt/login', data),
     onSuccess: ({ data }) => {
-      setAuth(data.user, data.token);
+      setAuth({ ...data.user, subscriptionPlan: data.user.subscription_plan, assessmentCompletedAt: data.user.assessment_completed_at }, data.token);
       navigate('/pt/home');
     },
     onError: (err: any) => {
@@ -115,7 +115,7 @@ export function useClientLogin() {
     mutationFn: (data: { email: string; password: string }) =>
       api.post('/auth/client/login', data),
     onSuccess: ({ data }) => {
-      setAuth(data.user, data.token);
+      setAuth({ ...data.user, subscriptionPlan: data.user.subscription_plan, assessmentCompletedAt: data.user.assessment_completed_at }, data.token);
       navigate('/client/home');
     },
     onError: (err: any) => {

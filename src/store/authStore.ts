@@ -66,6 +66,8 @@ interface AuthUser {
   client_id?: number;
   vetting_status?: 'pending' | 'approved' | 'rejected';
   subscription_status?: 'inactive' | 'active' | 'expired';
+  subscriptionPlan?: 'free' | 'standard' | 'enterprise';
+  assessmentCompletedAt?: string | null;
   activation_code?: string;
   coin_balance?: number;
 }
@@ -111,3 +113,9 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 );
+
+export const useIsPaid = () =>
+  useAuthStore((s) => s.user?.subscriptionPlan === 'standard' || s.user?.subscriptionPlan === 'enterprise');
+
+export const useIsFree = () =>
+  useAuthStore((s) => s.user?.subscriptionPlan === 'free');
