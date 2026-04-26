@@ -82,7 +82,11 @@ export function useClientRegister() {
     onSuccess: ({ data }) => {
       setAuth({ ...data.user, subscriptionPlan: data.user.subscription_plan, assessmentCompletedAt: data.user.assessment_completed_at }, data.token);
       toast.success('Welcome to ReHboX!');
-      navigate('/client/home');
+      if (!data.user.assessment_completed_at) {
+        navigate('/client/assessment');
+      } else {
+        navigate('/client/home');
+      }
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.message ?? 'Registration failed.');
@@ -116,7 +120,11 @@ export function useClientLogin() {
       api.post('/auth/client/login', data),
     onSuccess: ({ data }) => {
       setAuth({ ...data.user, subscriptionPlan: data.user.subscription_plan, assessmentCompletedAt: data.user.assessment_completed_at }, data.token);
-      navigate('/client/home');
+      if (data.user.role === 'client' && !data.user.assessment_completed_at) {
+        navigate('/client/assessment');
+      } else {
+        navigate('/client/home');
+      }
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.message ?? 'Login failed.');

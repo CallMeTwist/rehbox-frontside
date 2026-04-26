@@ -21,7 +21,7 @@ const features = [
 
 const pricingPlans = [
   {
-    name: "Basic", price: 3_500, icon: Zap, popular: false, isEnterprise: false,
+    name: "Free", price: 0, icon: Zap, popular: false, isEnterprise: false,
     features: ["Access to general exercises", "Basic progress tracking", "Coin rewards system"],
   },
   {
@@ -552,6 +552,13 @@ const Landing = () => {
                           style={{ color: "#0F2557" }}
                         >
                           Contact us
+                        </span>
+                      ) : plan.price === 0 ? (
+                        <span
+                          className="font-display font-bold text-4xl"
+                          style={{ color: isPopular ? "#fff" : "#0F2557" }}
+                        >
+                          Free
                         </span>
                       ) : (
                         <>

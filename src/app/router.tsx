@@ -35,6 +35,8 @@ import ClientShop from "@/features/client-dashboard/pages/Shop";
 import Chat from "@/features/client-dashboard/pages/Chat";
 import Reminders from "@/features/client-dashboard/pages/Reminders";
 import ClientProfile from "@/features/client-dashboard/pages/Profile";
+import Assessment from "@/features/client-dashboard/pages/Assessment";
+import AssessmentResults from "@/features/client-dashboard/pages/AssessmentResults";
 
 // Subscription / Payment Gate
 import PaymentGate from "@/features/client-dashboard/components/PaymentGate";
@@ -82,6 +84,8 @@ const AppRouter = () => (
         <Route path="chat" element={<Chat />} />
         <Route path="reminders" element={<Reminders />} />
         <Route path="profile" element={<ClientProfile />} />
+        <Route path="assessment" element={<Assessment />} />
+        <Route path="assessment/results" element={<AssessmentResults />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />

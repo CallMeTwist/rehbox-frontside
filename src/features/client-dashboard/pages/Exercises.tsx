@@ -59,7 +59,8 @@ const ClientExercises = () => {
   }
 
   if (isFree) {
-    const flat = (data ?? []) as Exercise[];
+    const raw = data ?? [];
+    const flat = (Array.isArray(raw) ? raw : Object.values(raw).flat()) as Exercise[];
     return (
       <div className="p-2">
         <h1 className="font-display font-bold text-2xl mb-4">Exercise Library</h1>
@@ -80,8 +81,11 @@ const ClientExercises = () => {
     );
   }
 
-  const grouped = (data ?? {}) as Record<string, Exercise[]>;
-  const entries = Object.entries(grouped);
+  const rawGrouped = (data ?? {}) as Record<string, unknown>;
+  const entries: [string, Exercise[]][] = Object.entries(rawGrouped).map(([k, v]) => [
+    k,
+    (Array.isArray(v) ? v : (v as { data?: Exercise[] })?.data ?? []) as Exercise[],
+  ]);
 
   return (
     <div className="p-2">
