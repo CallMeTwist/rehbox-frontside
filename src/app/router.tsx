@@ -26,6 +26,8 @@ import PTProfile from "@/features/pt-dashboard/pages/Profile";
 // Client pages
 import ClientHome from "@/features/client-dashboard/pages/Home";
 import MyPlan from "@/features/client-dashboard/pages/MyPlan";
+import PlanBuild from "@/features/client-dashboard/pages/PlanBuild";
+import ClientExercises from "@/features/client-dashboard/pages/Exercises";
 import ExerciseSession from "@/features/client-dashboard/pages/ExerciseSession";
 import Progress from "@/features/client-dashboard/pages/Progress";
 import Rewards from "@/features/client-dashboard/pages/Rewards";
@@ -33,6 +35,8 @@ import ClientShop from "@/features/client-dashboard/pages/Shop";
 import Chat from "@/features/client-dashboard/pages/Chat";
 import Reminders from "@/features/client-dashboard/pages/Reminders";
 import ClientProfile from "@/features/client-dashboard/pages/Profile";
+import Assessment from "@/features/client-dashboard/pages/Assessment";
+import AssessmentResults from "@/features/client-dashboard/pages/AssessmentResults";
 
 // Subscription / Payment Gate
 import PaymentGate from "@/features/client-dashboard/components/PaymentGate";
@@ -71,6 +75,8 @@ const AppRouter = () => (
         <Route index element={<Navigate to="/client/home" replace />} />
         <Route path="home" element={<ClientHome />} />
         <Route path="plan" element={<MyPlan />} />
+        <Route path="plan/build" element={<PlanBuild />} />
+        <Route path="exercises" element={<ClientExercises />} />
         <Route path="session/:exerciseId" element={<ExerciseSession />} />
         <Route path="progress" element={<Progress />} />
         <Route path="rewards" element={<Rewards />} />
@@ -78,6 +84,8 @@ const AppRouter = () => (
         <Route path="chat" element={<Chat />} />
         <Route path="reminders" element={<Reminders />} />
         <Route path="profile" element={<ClientProfile />} />
+        <Route path="assessment" element={<Assessment />} />
+        <Route path="assessment/results" element={<AssessmentResults />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />

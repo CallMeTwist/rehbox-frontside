@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate, Navigate } from "react-router-dom";
 import { useState } from "react";
 import {
-  LayoutDashboard, ClipboardList, TrendingUp, Gift, ShoppingBag,
+  LayoutDashboard, ClipboardList, Dumbbell, TrendingUp, Gift, ShoppingBag,
   MessageCircle, User, LogOut, Menu, ChevronLeft, Bell as BellIcon, Clock
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
@@ -15,6 +15,7 @@ import { InstallPrompt } from "./InstallPrompt";
 const navItems = [
   { to: "/client/home", icon: LayoutDashboard, label: "Home" },
   { to: "/client/plan", icon: ClipboardList, label: "My Plan" },
+  { to: "/client/exercises", icon: Dumbbell, label: "Exercises" },
   { to: "/client/progress", icon: TrendingUp, label: "Progress" },
   { to: "/client/rewards", icon: Gift, label: "Rewards" },
   { to: "/client/shop", icon: ShoppingBag, label: "Shop" },

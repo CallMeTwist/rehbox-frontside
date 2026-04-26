@@ -2,9 +2,35 @@
 import { useRewards } from '../hooks/useRewards';
 import { Link } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Lock } from 'lucide-react';
+import { useIsFree } from '@/store/authStore';
 
 const Rewards = () => {
-  const { data, isLoading } = useRewards();
+  const isFree = useIsFree();
+  const { data, isLoading, error } = useRewards();
+
+  if (isFree || (error as any)?.response?.status === 402) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="bg-card rounded-2xl border border-border p-10 text-center max-w-sm">
+          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+            <Lock size={28} className="text-muted-foreground" />
+          </div>
+          <h2 className="font-display font-bold text-xl mb-2">Rewards Locked</h2>
+          <p className="text-muted-foreground text-sm mb-6">
+            Earn coins for every session and redeem them in the shop. Available on the
+            Standard plan.
+          </p>
+          <Link
+            to="/subscription"
+            className="block w-full gradient-primary text-white rounded-xl py-3 font-semibold text-center shadow-primary"
+          >
+            Upgrade to Standard
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) return (
     <div className="space-y-4">
