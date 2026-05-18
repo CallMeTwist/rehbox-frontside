@@ -70,6 +70,7 @@ const CreatePlan = ({ editPlan }: CreatePlanProps = {}) => {
   const [createdPlanName, setCreatedPlanName]     = useState("");
   const [createdClientName, setCreatedClientName] = useState("");
   const [searchQuery, setSearchQuery]         = useState('');
+  const [tierFilter, setTierFilter]           = useState<'free' | 'paid' | undefined>(undefined);
   const [openCategories, setOpenCategories]   = useState<Set<string>>(new Set());
 
   // Map of exercise id → override values
@@ -101,8 +102,10 @@ const CreatePlan = ({ editPlan }: CreatePlanProps = {}) => {
 
   // Fetch real exercises from API
   const { data: exercisesData, isLoading: exercisesLoading } = useQuery({
-    queryKey: ['pt-exercises'],
-    queryFn:  () => api.get('/pt/exercises').then(r => {
+    queryKey: ['pt-exercises', tierFilter],
+    queryFn:  () => api.get('/pt/exercises', {
+      params: tierFilter ? { access_tier: tierFilter } : {},
+    }).then(r => {
       const d = r.data;
       return Array.isArray(d) ? d : (d.exercises ?? d.data ?? []);
     }),
@@ -338,8 +341,26 @@ const CreatePlan = ({ editPlan }: CreatePlanProps = {}) => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search exercises..."
-              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 mb-4"
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 mb-3"
             />
+
+            {/* Tier filter chips */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {(['free', 'paid'] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTierFilter((prev) => (prev === t ? undefined : t))}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                    tierFilter === t
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/70'
+                  }`}
+                >
+                  {t === 'free' ? 'Free' : 'Premium'}
+                </button>
+              ))}
+            </div>
 
             {/* Category accordions */}
             {Object.entries(groupedExercises).map(([cat, catExercises]) => (
