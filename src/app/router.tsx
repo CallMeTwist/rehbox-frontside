@@ -28,6 +28,7 @@ import ClientHome from "@/features/client-dashboard/pages/Home";
 import MyPlan from "@/features/client-dashboard/pages/MyPlan";
 import PlanBuild from "@/features/client-dashboard/pages/PlanBuild";
 import ClientExercises from "@/features/client-dashboard/pages/Exercises";
+import ClientExerciseLibrary from "@/features/client-dashboard/pages/ExerciseLibrary";
 import ExerciseSession from "@/features/client-dashboard/pages/ExerciseSession";
 import Progress from "@/features/client-dashboard/pages/Progress";
 import Rewards from "@/features/client-dashboard/pages/Rewards";
@@ -77,6 +78,7 @@ const AppRouter = () => (
         <Route path="plan" element={<MyPlan />} />
         <Route path="plan/build" element={<PlanBuild />} />
         <Route path="exercises" element={<ClientExercises />} />
+        <Route path="library" element={<ClientExerciseLibrary />} />
         <Route path="session/:exerciseId" element={<ExerciseSession />} />
         <Route path="progress" element={<Progress />} />
         <Route path="rewards" element={<Rewards />} />
