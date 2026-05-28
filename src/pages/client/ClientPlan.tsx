@@ -19,6 +19,7 @@ const ClientPlan = () => (
     </div>
     <div className="space-y-4">
       {mockPlan.exercises.map((ex) => (
+      
         <div key={ex.id} className="bg-card rounded-2xl p-4 shadow-card border border-border flex items-center gap-4">
           <img src={ex.thumbnail} alt={ex.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
           <div className="flex-1 min-w-0">

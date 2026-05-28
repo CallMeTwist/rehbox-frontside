@@ -32,9 +32,7 @@ const Login = () => {
       {/* Left panel */}
       <div className="hidden lg:flex lg:w-1/2 gradient-hero flex-col justify-between p-12">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shadow-primary">
-            <span className="text-white font-display font-bold">Rx</span>
-          </div>
+          <img src="/logo-icon.png" alt="ReHboX" className="w-9 h-9 object-contain" />
           <span className="font-display font-bold text-xl text-white">ReHboX</span>
         </Link>
         <div>
@@ -55,9 +53,7 @@ const Login = () => {
       <div className="flex-1 flex items-center justify-center p-6 bg-background">
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-2 mb-8 justify-center">
-            <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shadow-primary">
-              <span className="text-white font-display font-bold">Rx</span>
-            </div>
+            <img src="/logo-icon.png" alt="ReHboX" className="w-9 h-9 object-contain" />
             <span className="font-display font-bold text-xl">ReHboX</span>
           </div>
 

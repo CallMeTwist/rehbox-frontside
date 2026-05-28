@@ -29,6 +29,7 @@ export function useMotionTracking(
   trackingConfig?: any,
   activeSide?: 'left' | 'right',
   holdSeconds?: number,
+  tFn?: (key: string) => string,
 ) {
   // Override bilateral rules with the user-selected side
   const resolvedAngles = correctAngles?.map(r =>
@@ -351,9 +352,9 @@ export function useMotionTracking(
       const score        = Math.round((visibleCount / 33) * 100);
       setFormScore(score);
       setFeedback(
-        score >= 80 ? 'Great form! Keep it up 💪'
-        : score >= 50 ? 'Good — try to face the camera more'
-        : 'Move closer to the camera',
+        score >= 80 ? (tFn?.('session.great_form') ?? 'Great form! Keep it up 💪')
+        : score >= 50 ? (tFn?.('session.good_form') ?? 'Good — try to face the camera more')
+        : (tFn?.('session.poor_form') ?? 'Move closer to the camera'),
       );
     }
 

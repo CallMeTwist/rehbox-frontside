@@ -6,6 +6,12 @@ import {
   Tooltip, ResponsiveContainer, LineChart, Line,
 } from 'recharts';
 import { tooltipStyle } from '@/styles/theme';
+import { useIsFree } from '@/store/authStore';
+import { useQuery } from '@tanstack/react-query';
+import api from '@/lib/api';
+import { FreeStreakPanel } from '@/features/shared/components/FreeStreakPanel';
+import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 
 const CATEGORY_LABELS: Record<string, string> = {
   head_neck:  'Head & Neck',
@@ -14,8 +20,58 @@ const CATEGORY_LABELS: Record<string, string> = {
   lower_limb: 'Lower Limb',
 };
 
+type FreeProgressPayload = {
+  current_streak: number;
+  longest_streak: number;
+  last_7_days: boolean[];
+};
+
+function UpgradeUpsell() {
+  return (
+    <Link
+      to="/upgrade"
+      className="block rounded-2xl p-6 transition-all hover:scale-[1.01]"
+      style={{
+        background: 'linear-gradient(135deg, rgba(44,95,195,0.18), rgba(229,25,125,0.12))',
+        border: '1px solid rgba(229,25,125,0.28)',
+      }}
+    >
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="font-display font-bold text-white text-lg mb-1">See your full progress</p>
+          <p className="text-white/55 text-sm">Pain trends, weekly compliance, AI form scores, and PT-shared reports.</p>
+        </div>
+        <ArrowRight size={20} className="text-pink-400 flex-shrink-0" />
+      </div>
+    </Link>
+  );
+}
+
 const Progress = () => {
-  const { data, isLoading, isError } = useProgress();
+  const isFree = useIsFree();
+
+  const freeProgress = useQuery<FreeProgressPayload>({
+    queryKey: ['client', 'progress', 'free'],
+    enabled: isFree,
+    queryFn: () => api.get<FreeProgressPayload>('/client/progress').then(r => r.data),
+  });
+
+  const { data, isLoading, isError } = useProgress({ enabled: !isFree });
+
+  if (isFree) {
+    const free = freeProgress.data;
+    return (
+      <div className="space-y-6">
+        <h1 className="font-display font-bold text-2xl text-white">Your progress</h1>
+        <FreeStreakPanel
+          current={free?.current_streak ?? 0}
+          longest={free?.longest_streak ?? 0}
+          last7={free?.last_7_days ?? [false, false, false, false, false, false, false]}
+        />
+        <UpgradeUpsell />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

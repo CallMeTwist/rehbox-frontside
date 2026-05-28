@@ -12,8 +12,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans:    ['Inter', 'sans-serif'],
-        display: ['Plus Jakarta Sans', 'Outfit', 'sans-serif'],
+        sans:    ['DM Sans', 'sans-serif'],
+        display: ['Syne', 'sans-serif'],
         mono:    ['JetBrains Mono', 'monospace'],
       },
       colors: {
@@ -78,6 +78,22 @@ export default {
           surface: "hsl(var(--dark-surface))",
           card:    "hsl(var(--dark-card))",
         },
+        pub: {
+          ink:            "#070F24",
+          canvas:         "#0B1730",
+          surface:        "#0E1E45",
+          ivory:          "#F4F2EC",
+          "card-light":   "#FBFAF6",
+          "ink-text":     "#1A2238",
+          "ink-mute":     "#5A6172",
+          "border-light": "#ECEAE2",
+          "blue-ink":     "#2E5BBA",
+          electric:       "#4F8DF7",
+          violet:         "#7C5CFF",
+          cyan:           "#26C6DA",
+          magenta:        "#E0479B",
+          "magenta-deep": "#C0397F",
+        },
         coin: {
           DEFAULT:  "hsl(var(--coin))",
           foreground: "hsl(var(--coin-foreground))",
@@ -94,6 +110,10 @@ export default {
         "gradient-coin":    "linear-gradient(135deg, #F4A100 0%, #E8920A 100%)",
         "gradient-card":    "linear-gradient(145deg, #1B3E8F 0%, #162F6B 100%)",
         "gradient-progress":"linear-gradient(90deg,  #1B3E8F 0%, #E5197D 100%)",
+        "pub-hero":     "radial-gradient(125% 125% at 78% -10%, #16306E 0%, #0C1C44 55%, #070F24 100%)",
+        "pub-magenta":  "linear-gradient(135deg, #E0479B 0%, #C0397F 100%)",
+        "pub-accent":   "linear-gradient(135deg, #4F8DF7 0%, #7C5CFF 100%)",
+        "pub-text":     "linear-gradient(90deg, #26C6DA 0%, #E0479B 100%)",
       },
       borderRadius: {
         DEFAULT: "0.875rem",

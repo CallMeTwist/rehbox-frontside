@@ -6,6 +6,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
 import { ComingSoon } from '../components/ComingSoon';
+import { useIsFree } from '@/store/authStore';
+import { FreeTierLock } from '@/features/shared/components/FreeTierLock';
 
 const CATEGORIES = [
   { value: '',           label: 'All' },
@@ -23,8 +25,13 @@ const Shop = () => {
   const [address, setAddress]         = useState('');
   const [payMethod, setPayMethod]     = useState<'coins' | 'cash'>('coins');
   const qc = useQueryClient();
+  const isFree = useIsFree();
 
   const { data, isLoading } = useShop(category);
+
+  if (isFree) {
+    return <FreeTierLock feature="shop" />;
+  }
 
   if (!SHOP_ENABLED) {
     return (

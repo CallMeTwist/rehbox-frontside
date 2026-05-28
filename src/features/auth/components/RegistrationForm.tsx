@@ -164,11 +164,14 @@ interface Props {
   onSubmit?: () => void; // kept for compatibility but we handle nav in the hook
 }
 
+type ChosenPlan = 'free' | 'standard';
+
 const RegistrationForm = ({ type }: Props) => {
   const ptRegister = usePTRegister();
   const clientRegister = useClientRegister();
 
   const [step, setStep] = useState(1);
+  const [chosenPlan, setChosenPlan] = useState<ChosenPlan>('free');
   const [form, setForm] = useState({
     name: "", email: "", password: "", password_confirmation: "",
     phone: "", license_number: "", hospital_or_clinic: "",
@@ -225,7 +228,8 @@ const RegistrationForm = ({ type }: Props) => {
         password:              form.password,
         password_confirmation: form.password_confirmation,
         phone:                 form.phone,
-        activation_code:       form.activation_code || '',
+        activation_code:       chosenPlan === 'standard' ? (form.activation_code || '') : '',
+        subscription_plan:     chosenPlan,
         agreed_to_terms:       '1',
       });
     }
@@ -364,6 +368,36 @@ const RegistrationForm = ({ type }: Props) => {
       {/* ── Client: single step ── */}
       {type === "client" && (
         <>
+          <div className="space-y-2">
+            <Label>Choose your plan</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setChosenPlan('free')}
+                className={`p-4 rounded-2xl text-left transition-all ${
+                  chosenPlan === 'free'
+                    ? 'ring-2 ring-primary bg-primary/5'
+                    : 'border border-border hover:border-primary/50'
+                }`}
+              >
+                <p className="font-display font-bold text-sm">Free</p>
+                <p className="text-muted-foreground text-xs mt-1">General exercises, basic tracking</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setChosenPlan('standard')}
+                className={`p-4 rounded-2xl text-left transition-all ${
+                  chosenPlan === 'standard'
+                    ? 'ring-2 ring-primary bg-primary/5'
+                    : 'border border-border hover:border-primary/50'
+                }`}
+              >
+                <p className="font-display font-bold text-sm">Standard · ₦2,000/mo</p>
+                <p className="text-muted-foreground text-xs mt-1">Personal PT, AI tracking, custom plan</p>
+              </button>
+            </div>
+          </div>
+
           <div className="space-y-1">
             <Label>Full Name</Label>
             <Input placeholder="Your full name" value={form.name}
@@ -379,21 +413,23 @@ const RegistrationForm = ({ type }: Props) => {
             <Input placeholder="+234 800 000 0000" value={form.phone}
               onChange={(e) => update("phone", e.target.value)} />
           </div>
-          <div className="space-y-1">
-            <Label>
-              Activation Code{" "}
-              <span className="text-muted-foreground font-normal text-xs">(optional)</span>
-            </Label>
-            <Input
-              placeholder="Code from your Physiotherapist"
-              value={form.activation_code}
-              onChange={(e) => update("activation_code", e.target.value.toUpperCase())}
-              className="tracking-widest font-mono"
-            />
-            <p className="text-xs text-muted-foreground">
-              Have a code? Enter it to link with your physiotherapist. You can also add one later.
-            </p>
-          </div>
+          {chosenPlan === 'standard' && (
+            <div className="space-y-1">
+              <Label>
+                Activation Code{" "}
+                <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+              </Label>
+              <Input
+                placeholder="Code from your Physiotherapist"
+                value={form.activation_code}
+                onChange={(e) => update("activation_code", e.target.value.toUpperCase())}
+                className="tracking-widest font-mono"
+              />
+              <p className="text-xs text-muted-foreground">
+                Have a code? Enter it to link with your physiotherapist. You can also add one later.
+              </p>
+            </div>
+          )}
           <div className="space-y-1">
             <Label>Password</Label>
             <Input type="password" value={form.password}

@@ -70,6 +70,7 @@ interface AuthUser {
   assessmentCompletedAt?: string | null;
   activation_code?: string;
   coin_balance?: number;
+  language_preference?: string;
 }
 
 interface AuthState {

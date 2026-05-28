@@ -23,9 +23,7 @@ const RegisterClient = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-9 h-9 rounded-xl gradient-pink flex items-center justify-center" style={{ boxShadow: 'var(--shadow-pink)' }}>
-              <span className="text-white font-display font-bold">Rx</span>
-            </div>
+            <img src="/logo-icon.png" alt="ReHboX" className="w-9 h-9 object-contain" />
             <span className="font-display font-bold text-xl">ReHboX</span>
           </Link>
           <h1 className="font-display font-bold text-2xl mb-1">Register as a Patient</h1>

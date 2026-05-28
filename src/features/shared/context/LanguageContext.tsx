@@ -29,6 +29,9 @@ const translations: Record<Language, Record<string, string>> = {
     'session.great_form': 'Great form! Keep it up 💪',
     'session.good_form':  'Good — try to face the camera more',
     'session.poor_form':  'Move closer to the camera',
+    'nav.exercises':  'Exercises',
+    'nav.reminders':  'Reminders',
+    'nav.profile':    'Profile',
   },
   pcm: {
     'nav.home':       'Home',
@@ -47,6 +50,9 @@ const translations: Record<Language, Record<string, string>> = {
     'session.great_form': 'Your form dey fine! Continue 💪',
     'session.good_form':  'E good — try face camera well',
     'session.poor_form':  'Come near camera small',
+    'nav.exercises':  'Exercise',
+    'nav.reminders':  'Reminder',
+    'nav.profile':    'My Profile',
   },
   yo: {
     'nav.home':       'Ile',
@@ -65,6 +71,9 @@ const translations: Record<Language, Record<string, string>> = {
     'session.great_form': 'Fọọmu rẹ dara! Tẹsiwaju 💪',
     'session.good_form':  'Dara — gbiyanju lati wo kamẹra',
     'session.poor_form':  'Sunmọ kamẹra diẹ',
+    'nav.exercises':  'Adaṣe',
+    'nav.reminders':  'Iranti',
+    'nav.profile':    'Profaili',
   },
   ig: {
     'nav.home':       'Ụlọ',
@@ -83,6 +92,9 @@ const translations: Record<Language, Record<string, string>> = {
     'session.great_form': 'Ọdịdị gị dị mma! Gaa n\'ihu 💪',
     'session.good_form':  'Ọ dị mma — nwalee ilele igwefoto',
     'session.poor_form':  'Bịa nso igwefoto obere',
+    'nav.exercises':  'Omume',
+    'nav.reminders':  'Ncheta',
+    'nav.profile':    'Profaịlụ',
   },
   ha: {
     'nav.home':       'Gida',
@@ -101,6 +113,9 @@ const translations: Record<Language, Record<string, string>> = {
     'session.great_form': 'Sifarka tana da kyau! Ci gaba 💪',
     'session.good_form':  'Yana da kyau — gwada fuskantar kyamara',
     'session.poor_form':  'Zo kusa da kyamara kaɗan',
+    'nav.exercises':  'Motsa Jiki',
+    'nav.reminders':  'Tunawa',
+    'nav.profile':    'Bayanai',
   },
 };
 
@@ -114,11 +129,17 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const user = useAuthStore((s) => s.user);
   const [language, setLanguageState] = useState<Language>('en');
 
-  // Load saved preference on mount
+  // Seed from server preference on login, fall back to localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('rehbox-language') as Language;
-    if (saved) setLanguageState(saved);
-  }, []);
+    if (user?.role === 'client' && user.language_preference) {
+      const pref = user.language_preference as Language;
+      setLanguageState(pref);
+      localStorage.setItem('rehbox-language', pref);
+    } else {
+      const saved = localStorage.getItem('rehbox-language') as Language;
+      if (saved) setLanguageState(saved);
+    }
+  }, [user?.id]);
 
   const setLanguage = async (lang: Language) => {
     setLanguageState(lang);
