@@ -152,7 +152,7 @@ const MarkAsDoneSession = ({ exerciseId }: { exerciseId: string }) => {
   });
 
   const exercise = Array.isArray(libraryData)
-    ? (libraryData as Array<{ id: number | string; title: string; description?: string; thumbnail_url?: string | null; illustration_url?: string | null }>).find(
+    ? (libraryData as Array<{ id: number | string; title: string; description?: string; thumbnail_url?: string | null; illustration_url?: string | null; video?: { source: string; url: string | null; youtube_id: string | null } }>).find(
         (e) => String(e.id) === String(exerciseId),
       )
     : undefined;
@@ -178,13 +178,23 @@ const MarkAsDoneSession = ({ exerciseId }: { exerciseId: string }) => {
       <div className="w-full max-w-xs mb-6">
         <FreeTierLock feature="tracking" variant="inline" />
       </div>
-      {(exercise.thumbnail_url ?? exercise.illustration_url) && (
-        <img
-          src={(exercise.thumbnail_url ?? exercise.illustration_url)!}
-          alt={exercise.title}
-          className="w-40 h-40 rounded-2xl object-cover mb-6"
-        />
-      )}
+      <div className="w-full max-w-sm mb-6">
+        {exercise.video?.url ? (
+          <VideoPlayer
+            src={exercise.video.url}
+            poster={exercise.thumbnail_url ?? exercise.illustration_url ?? undefined}
+            className="w-full"
+          />
+        ) : exercise.video?.youtube_id ? (
+          <VideoPlayer src={exercise.video.youtube_id} className="w-full" />
+        ) : (exercise.thumbnail_url ?? exercise.illustration_url) ? (
+          <img
+            src={(exercise.thumbnail_url ?? exercise.illustration_url)!}
+            alt={exercise.title}
+            className="w-40 h-40 rounded-2xl object-cover mx-auto"
+          />
+        ) : null}
+      </div>
       <h1 className="font-display font-bold text-2xl mb-2 text-center">{exercise.title}</h1>
       {exercise.description && (
         <p className="text-muted-foreground mb-8 text-center max-w-sm">
