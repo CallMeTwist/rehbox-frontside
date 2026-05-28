@@ -2,10 +2,11 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 
-export function useProgress() {
+export function useProgress(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['client-progress'],
     queryFn:  () => api.get('/client/progress').then(r => r.data),
+    enabled:  options?.enabled ?? true,
   });
 }
 

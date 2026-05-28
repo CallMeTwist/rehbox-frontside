@@ -6,16 +6,20 @@ import api from '@/lib/api';
 export interface Exercise {
   id: number;
   title: string;
-  area: 'neck' | 'shoulder' | 'elbow_forearm_wrist' | 'back' | 'lower_limb';
-  category: 'strengthening' | 'stretching' | 'rom' | 'functional' | 'endurance';
+  area: string;
+  area_label: string;
+  category: string;
+  category_label: string;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   description?: string;
-  video_url?: string;
-  illustration_url?: string;
+  video: { source: string; url: string | null; youtube_id: string | null };
+  thumbnail_url: string | null;
   default_sets: number;
   default_reps: number;
   default_hold_seconds: number;
-  instructions_en?: string;
+  instructions?: string | null;
+  is_personalized: boolean;
+  is_locked: boolean;
 }
 
 export function useExerciseLibrary() {

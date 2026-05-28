@@ -2,10 +2,11 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 
-export function useMyPlan() {
+export function useMyPlan(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['client-plan'],
     queryFn: () => api.get('/client/plan').then((r) => r.data),
     retry: false, // Don't retry on 402 (unsubscribed)
+    enabled: options?.enabled ?? true,
   });
 }

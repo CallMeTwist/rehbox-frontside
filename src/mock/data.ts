@@ -111,7 +111,7 @@ export const mockComplianceData = [
 
 export const LANGUAGES = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
-  { code: 'pid', label: 'Pidgin', flag: '🇳🇬' },
+  { code: 'pcm', label: 'Pidgin', flag: '🇳🇬' },
   { code: 'yo', label: 'Yoruba', flag: '🇳🇬' },
   { code: 'ig', label: 'Igbo', flag: '🇳🇬' },
   { code: 'ha', label: 'Hausa', flag: '🇳🇬' },

@@ -59,12 +59,14 @@
 // src/features/client-dashboard/pages/Profile.tsx
 
 import { useState } from "react";
-import { Camera, Edit2, Save, Bell, BellOff } from "lucide-react";
-import { useAuthStore } from "@/store/authStore";
+import { Camera, Edit2, Save, Bell, BellOff, Globe, Crown, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useAuthStore, useIsFree } from "@/store/authStore";
 import { useClientProfile, useUpdateClientProfile } from "../hooks/useClientProfile";
 import CoinWallet from "@/features/client-dashboard/components/CoinWallet";
 import toast from "react-hot-toast";
 import { usePushNotifications } from "@/features/shared/hooks/usePushNotification";
+import LanguageSelector from "@/features/client-dashboard/components/LanguageSelector";
 
 const PLAN_LABELS: Record<string, string> = {
   basic: "Basic",
@@ -74,7 +76,7 @@ const PLAN_LABELS: Record<string, string> = {
 
 const PLAN_PRICES: Record<string, string> = {
   basic: "₦5,000/month",
-  standard: "₦10,000/month",
+  standard: "₦2,000/month",
   premium: "₦20,000/month",
 };
 
@@ -139,6 +141,7 @@ const Profile = () => {
   const { data, isLoading } = useClientProfile();
   const updateProfile = useUpdateClientProfile();
   const isClient = user?.role === 'client';
+  const isFree = useIsFree();
 
 
   const [editing, setEditing] = useState(false);
@@ -178,6 +181,30 @@ const Profile = () => {
 
   return (
     <div className="space-y-6 animate-slide-up max-w-2xl">
+      {isFree && (
+        <Link
+          to="/upgrade"
+          className="block rounded-2xl p-5 relative overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #1B3E8F 0%, #2C5FC3 45%, #E5197D 100%)',
+            boxShadow: '0 12px 40px rgba(229,25,125,0.28)',
+          }}
+        >
+          <div className="flex items-center justify-between gap-3 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+                <Crown size={18} className="text-white" />
+              </div>
+              <div>
+                <p className="text-white font-display font-bold text-sm">Upgrade to Standard</p>
+                <p className="text-white/75 text-xs">Personal PT · Custom plans · AI tracking</p>
+              </div>
+            </div>
+            <ArrowRight size={18} className="text-white flex-shrink-0" />
+          </div>
+        </Link>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="font-display font-bold text-2xl">My Profile</h1>
@@ -320,6 +347,20 @@ const Profile = () => {
             </a>
           </div>
         )}
+      </div>
+
+      {/* Language Preference */}
+      <div className="bg-card rounded-2xl border border-border p-5 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+            <Globe size={20} className="text-primary" />
+          </div>
+          <div>
+            <p className="font-semibold text-sm">Language</p>
+            <p className="text-xs text-muted-foreground">App display language</p>
+          </div>
+        </div>
+        <LanguageSelector />
       </div>
 
       {/* Push Notifications */}

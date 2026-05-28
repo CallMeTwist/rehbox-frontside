@@ -82,8 +82,12 @@ export function useClientRegister() {
     onSuccess: ({ data }) => {
       setAuth({ ...data.user, subscriptionPlan: data.user.subscription_plan, assessmentCompletedAt: data.user.assessment_completed_at }, data.token);
       toast.success('Welcome to ReHboX!');
+
+      const plan = data.user.subscription_plan;
       if (!data.user.assessment_completed_at) {
         navigate('/client/assessment');
+      } else if (plan === 'standard' || plan === 'premium') {
+        navigate('/upgrade');
       } else {
         navigate('/client/home');
       }

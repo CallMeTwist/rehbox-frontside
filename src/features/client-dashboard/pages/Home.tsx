@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Play, TrendingUp, Award, MessageCircle, ChevronRight, X, Flame, Zap, Target, Clock } from "lucide-react";
+import { Play, TrendingUp, Award, MessageCircle, ChevronRight, X, Flame, Zap, Target, Clock, Crown, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "@/store/authStore";
+import { useAuthStore, useIsFree } from "@/store/authStore";
+import { useLanguage } from "@/features/shared/context/LanguageContext";
 import ProgressRing from "@/features/client-dashboard/components/ProgressRing";
 import { ReminderBanner } from "@/features/client-dashboard/components/ReminderBanner";
+import { FreeStreakPanel } from "@/features/shared/components/FreeStreakPanel";
 import api from "@/features/shared/utils/api";
 import toast from "react-hot-toast";
 
@@ -121,27 +123,102 @@ const StatTile = ({
   </motion.div>
 );
 
+// ── Free Home (subscription_plan = 'free') ────────────────────────────
+const FreeHome = () => {
+  const { user } = useAuthStore();
+
+  const progress = useQuery<{ current_streak: number; longest_streak: number; last_7_days: boolean[] }>({
+    queryKey: ['client', 'progress', 'free'],
+    queryFn: () => api.get('/client/progress').then(r => r.data),
+  });
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <p className="text-muted-foreground text-sm">Welcome back,</p>
+        <h1 className="font-display font-bold text-2xl">{user?.name ?? 'Friend'}</h1>
+      </div>
+
+      <FreeStreakPanel
+        current={progress.data?.current_streak ?? 0}
+        longest={progress.data?.longest_streak ?? 0}
+        last7={progress.data?.last_7_days ?? [false, false, false, false, false, false, false]}
+      />
+
+      <Link
+        to="/client/library"
+        className="block rounded-2xl p-5 text-white relative overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg,#1B3E8F,#2C5FC3)',
+          boxShadow: '0 10px 30px rgba(44,95,195,0.32)',
+        }}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+              <Play size={18} />
+            </div>
+            <div>
+              <p className="font-display font-bold text-sm">Do a generalized exercise</p>
+              <p className="text-white/70 text-xs">Keep your streak alive</p>
+            </div>
+          </div>
+          <ArrowRight size={18} />
+        </div>
+      </Link>
+
+      <Link
+        to="/upgrade"
+        className="block rounded-2xl p-5 relative overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, rgba(229,25,125,0.18), rgba(44,95,195,0.12))',
+          border: '1px solid rgba(229,25,125,0.28)',
+        }}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Crown size={18} className="text-pink-400" />
+            <div>
+              <p className="font-display font-bold text-foreground text-sm">Get a personal PT</p>
+              <p className="text-muted-foreground text-xs">Custom plans · AI tracking · ₦2,000/mo</p>
+            </div>
+          </div>
+          <ArrowRight size={18} className="text-pink-400" />
+        </div>
+      </Link>
+    </div>
+  );
+};
+
 // ── Main ──────────────────────────────────────────────────────────────
 const Home = () => {
   const { user }         = useAuthStore();
+  const { t }            = useLanguage();
+  const isFree           = useIsFree();
   const [showCode, setShowCode] = useState(false);
 
   const { data: profileData, isLoading } = useQuery({
     queryKey: ["client-profile"],
     queryFn:  () => api.get("/client/profile").then(r => r.data),
+    enabled:  !isFree,
   });
 
   const { data: progressData } = useQuery({
     queryKey: ["client-progress"],
     queryFn:  () => api.get("/client/progress").then(r => r.data),
-    enabled:  !!profileData,
+    enabled:  !isFree && !!profileData,
   });
 
   const { data: planData } = useQuery({
     queryKey: ["client-plan"],
     queryFn:  () => api.get("/client/plan").then(r => r.data),
     retry:    false,
+    enabled:  !isFree,
   });
+
+  if (isFree) {
+    return <FreeHome />;
+  }
 
   const clientInfo      = profileData?.client;
   const planInfo        = planData?.active_plan ?? planData?.plan;
@@ -237,7 +314,7 @@ const Home = () => {
           {/* Left: greeting + CTA */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
-              <p className="text-white/60 text-sm">{greeting} 👋</p>
+              <p className="text-white/60 text-sm">{t('home.greeting')}</p>
               {streakDays > 0 && (
                 <span className="inline-flex items-center gap-1 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-2.5 py-0.5 text-white text-xs font-bold">
                   <Flame size={11} className="text-orange-400" /> {streakDays}-day streak
@@ -249,7 +326,7 @@ const Home = () => {
             </h1>
             <p className="text-white/60 text-sm mb-5">
               {streakDays > 0
-                ? `You're doing great. Keep the momentum going! 💪`
+                ? t('home.streak')
                 : "Start your first session and build your streak."}
             </p>
             <Link
@@ -257,7 +334,7 @@ const Home = () => {
               className="inline-flex items-center gap-2 font-bold px-6 py-3 rounded-xl text-white text-sm"
               style={{ background: 'var(--gradient-pink)', boxShadow: 'var(--shadow-pink)' }}
             >
-              <Play size={16} fill="white" /> Start Today's Session
+              <Play size={16} fill="white" /> {t('home.start')}
             </Link>
           </div>
 

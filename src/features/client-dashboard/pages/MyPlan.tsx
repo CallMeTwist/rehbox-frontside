@@ -9,6 +9,8 @@ import api from '@/features/shared/utils/api';
 import { useIsFree } from '@/store/authStore';
 import ExerciseGridCard from '../components/ExerciseGridCard';
 import MarkDoneSheet from '../components/MarkDoneSheet';
+import { useLanguage } from '@/features/shared/context/LanguageContext';
+import { FreeTierLock } from '@/features/shared/components/FreeTierLock';
 
 type MarkingDone = { id: number | string; title: string } | null;
 
@@ -153,6 +155,7 @@ function PlanCard({
                   exercise={{
                     id: ex.id,
                     title: ex.title,
+                    thumbnail_url: ex.thumbnail_url ?? ex.illustration_url,
                     illustration_url: ex.illustration_url,
                     sets: ex.pivot?.sets ?? ex.sets,
                     reps: ex.pivot?.reps ?? ex.reps,
@@ -172,10 +175,15 @@ function PlanCard({
 }
 
 const MyPlan = () => {
-  const { data, isLoading, error } = useMyPlan();
   const isFree = useIsFree();
+  const { data, isLoading, error } = useMyPlan({ enabled: !isFree });
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [markingDone, setMarkingDone] = useState<MarkingDone>(null);
+
+  if (isFree) {
+    return <FreeTierLock feature="plan" />;
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleTap = (ex: any) => {
@@ -196,7 +204,7 @@ const MyPlan = () => {
           </div>
           <h2 className="font-display font-bold text-xl mb-2">Plan Locked</h2>
           <p className="text-muted-foreground text-sm mb-6">
-            Subscribe to unlock your personalized exercise plan created by your physiotherapist.
+            {t('plan.locked')}
           </p>
           <Link
             to="/subscription"
@@ -250,10 +258,7 @@ const MyPlan = () => {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <p className="text-4xl mb-3">📋</p>
-          <p className="font-semibold">No plans assigned yet</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            Your physiotherapist will create your personalized plan shortly.
-          </p>
+          <p className="text-sm text-muted-foreground">{t('plan.no_plan')}</p>
         </div>
       </div>
     );

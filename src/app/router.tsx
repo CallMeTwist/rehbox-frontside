@@ -11,6 +11,11 @@ import Login from "@/features/auth/pages/Login";
 import RegisterPT from "@/features/auth/pages/RegisterPT";
 import RegisterClient from "@/features/auth/pages/RegisterClient";
 import VettingPendingScreen from "@/features/auth/components/VettingPendingScreen";
+import About   from "@/features/auth/pages/About";
+import Contact from "@/features/auth/pages/Contact";
+import Privacy from "@/features/auth/pages/Privacy";
+import Terms   from "@/features/auth/pages/Terms";
+import Upgrade from "@/features/auth/pages/Upgrade";
 
 // PT pages
 import PTHome from "@/features/pt-dashboard/pages/Home";
@@ -28,6 +33,7 @@ import ClientHome from "@/features/client-dashboard/pages/Home";
 import MyPlan from "@/features/client-dashboard/pages/MyPlan";
 import PlanBuild from "@/features/client-dashboard/pages/PlanBuild";
 import ClientExercises from "@/features/client-dashboard/pages/Exercises";
+import ClientExerciseLibrary from "@/features/client-dashboard/pages/ExerciseLibrary";
 import ExerciseSession from "@/features/client-dashboard/pages/ExerciseSession";
 import Progress from "@/features/client-dashboard/pages/Progress";
 import Rewards from "@/features/client-dashboard/pages/Rewards";
@@ -54,6 +60,10 @@ const AppRouter = () => (
         <Route path="/register/client" element={<RegisterClient />} />
         <Route path="/pending-vetting" element={<VettingPendingScreen />} />
         <Route path="/subscription" element={<PaymentGate />} />
+        <Route path="/about"   element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms"   element={<Terms />} />
       </Route>
 
       {/* PT routes */}
@@ -77,6 +87,7 @@ const AppRouter = () => (
         <Route path="plan" element={<MyPlan />} />
         <Route path="plan/build" element={<PlanBuild />} />
         <Route path="exercises" element={<ClientExercises />} />
+        <Route path="library" element={<ClientExerciseLibrary />} />
         <Route path="session/:exerciseId" element={<ExerciseSession />} />
         <Route path="progress" element={<Progress />} />
         <Route path="rewards" element={<Rewards />} />
@@ -87,6 +98,9 @@ const AppRouter = () => (
         <Route path="assessment" element={<Assessment />} />
         <Route path="assessment/results" element={<AssessmentResults />} />
       </Route>
+
+      {/* Upgrade — full-page (no public layout chrome) */}
+      <Route path="/upgrade" element={<Upgrade />} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>

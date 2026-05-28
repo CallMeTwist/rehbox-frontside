@@ -6,8 +6,7 @@ import toast from 'react-hot-toast';
 import api from '@/lib/api';
 import { ChatFilePreview } from '../components/ChatFilePreview';
 import { useAuthStore, useIsFree } from '@/store/authStore';
-import { Lock } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { FreeTierLock } from '@/features/shared/components/FreeTierLock';
 import { useOnlineUsers } from '@/features/shared/hooks/useOnlineUsers';
 import getEcho, { hasEcho } from '@/features/shared/utils/echo';
 import { useChatTyping } from '@/features/shared/hooks/useChatTyping';
@@ -169,26 +168,7 @@ const Chat = () => {
   }, [messages]);
 
   if (isFree) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="bg-card rounded-2xl border border-border p-10 text-center max-w-sm">
-          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-            <Lock size={28} className="text-muted-foreground" />
-          </div>
-          <h2 className="font-display font-bold text-xl mb-2">Chat Locked</h2>
-          <p className="text-muted-foreground text-sm mb-6">
-            Upgrade to Standard to chat with a certified physiotherapist about your plan,
-            pain points, and progress.
-          </p>
-          <Link
-            to="/subscription"
-            className="block w-full gradient-primary text-white rounded-xl py-3 font-semibold text-center shadow-primary"
-          >
-            Upgrade to Standard
-          </Link>
-        </div>
-      </div>
-    );
+    return <FreeTierLock feature="chat" />;
   }
 
   return (

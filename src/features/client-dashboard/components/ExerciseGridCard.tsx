@@ -5,6 +5,7 @@ interface Props {
     id: number | string;
     title: string;
     illustration_url?: string | null;
+    thumbnail_url?: string | null;
     sets?: number;
     reps?: number;
     duration?: number;
@@ -52,9 +53,9 @@ const ExerciseGridCard = ({ exercise, onTap, delay = 0 }: Props) => {
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="relative w-full aspect-square">
-        {exercise.illustration_url ? (
+        {(exercise.thumbnail_url ?? exercise.illustration_url) ? (
           <img
-            src={exercise.illustration_url}
+            src={(exercise.thumbnail_url ?? exercise.illustration_url)!}
             alt={exercise.title}
             className="w-full h-full object-cover"
           />

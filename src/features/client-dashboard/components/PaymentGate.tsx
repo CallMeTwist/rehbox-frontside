@@ -23,7 +23,7 @@ const PLANS = [
   },
   {
     name: 'Standard',
-    price: '₦7,500',
+    price: '₦2,000',
     period: '/month',
     features: [
       'Personalized exercise plan from your PT',

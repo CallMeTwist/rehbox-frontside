@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useUIStore } from "@/store/uiStore";
+import { useLanguage } from "@/features/shared/context/LanguageContext";
 import { useOnlineUsers } from "@/features/shared/hooks/useOnlineUsers";
 import NotificationBell from "@/features/shared/components/NotificationBell";
 import LanguageSelector from "@/features/client-dashboard/components/LanguageSelector";
@@ -34,7 +35,20 @@ const ClientLayout = () => {
   useOnlineUsers();
 
   const { sidebarOpen, toggleSidebar } = useUIStore();
+  const { t } = useLanguage();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const navTranslations: Record<string, string> = {
+    '/client/home':      t('nav.home'),
+    '/client/plan':      t('nav.plan'),
+    '/client/exercises': t('nav.exercises'),
+    '/client/progress':  t('nav.progress'),
+    '/client/rewards':   t('nav.rewards'),
+    '/client/shop':      t('nav.shop'),
+    '/client/chat':      t('nav.chat'),
+    '/client/reminders': t('nav.reminders'),
+    '/client/profile':   t('nav.profile'),
+  };
 
   const handleLogout = () => { logout(); navigate("/login"); };
 
@@ -64,7 +78,7 @@ const ClientLayout = () => {
           <NavLink key={to} to={to}
             className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group ${isActive ? "text-white shadow-pink" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-white"}`}
             style={({ isActive }) => isActive ? { background: 'hsl(var(--hot-pink))' } : {}}>
-            {({ isActive }) => (<><Icon size={18} className={isActive ? "text-white" : "text-sidebar-foreground group-hover:text-white"} />{sidebarOpen && <span>{label}</span>}</>)}
+            {({ isActive }) => (<><Icon size={18} className={isActive ? "text-white" : "text-sidebar-foreground group-hover:text-white"} />{sidebarOpen && <span>{navTranslations[to] ?? label}</span>}</>)}
           </NavLink>
         ))}
       </nav>

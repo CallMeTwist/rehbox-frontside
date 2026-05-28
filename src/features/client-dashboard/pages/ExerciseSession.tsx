@@ -10,6 +10,8 @@ import { useMyPlan } from '../hooks/useMyPlan';
 import VideoPlayer from '@/features/shared/components/VideoPlayer';
 import { ROM_STANDARDS } from '@/features/shared/utils/motion';
 import { useAuthStore, useIsFree } from '@/store/authStore';
+import { useLanguage } from '@/features/shared/context/LanguageContext';
+import { FreeTierLock } from '@/features/shared/components/FreeTierLock';
 
 type Phase = 'intro' | 'side_select' | 'active' | 'complete';
 type Side = 'left' | 'right';
@@ -150,7 +152,7 @@ const MarkAsDoneSession = ({ exerciseId }: { exerciseId: string }) => {
   });
 
   const exercise = Array.isArray(libraryData)
-    ? (libraryData as Array<{ id: number | string; title: string; description?: string; illustration_url?: string | null }>).find(
+    ? (libraryData as Array<{ id: number | string; title: string; description?: string; thumbnail_url?: string | null; illustration_url?: string | null }>).find(
         (e) => String(e.id) === String(exerciseId),
       )
     : undefined;
@@ -173,9 +175,12 @@ const MarkAsDoneSession = ({ exerciseId }: { exerciseId: string }) => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
-      {exercise.illustration_url && (
+      <div className="w-full max-w-xs mb-6">
+        <FreeTierLock feature="tracking" variant="inline" />
+      </div>
+      {(exercise.thumbnail_url ?? exercise.illustration_url) && (
         <img
-          src={exercise.illustration_url}
+          src={(exercise.thumbnail_url ?? exercise.illustration_url)!}
           alt={exercise.title}
           className="w-40 h-40 rounded-2xl object-cover mb-6"
         />
@@ -203,10 +208,104 @@ const MarkAsDoneSession = ({ exerciseId }: { exerciseId: string }) => {
   );
 };
 
+// ── Fallback viewer: exercise viewed from library (not in plan) ───────
+const LibraryExerciseViewer = ({ exerciseId }: { exerciseId: string }) => {
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+
+  const { data: libraryData, isLoading } = useQuery({
+    queryKey: ['client-exercises-library', 'flat'],
+    queryFn: async () => (await api.get('/client/exercises')).data.data,
+    enabled: user?.role === 'client',
+  });
+
+  const exercise = Array.isArray(libraryData)
+    ? (libraryData as Array<{ id: number | string; title: string; description?: string; thumbnail_url?: string | null; video: { source: string; url: string | null; youtube_id: string | null }; instructions?: string | null }>).find(
+        (e) => String(e.id) === String(exerciseId),
+      )
+    : undefined;
+
+  const logCompletion = useMutation({
+    mutationFn: async () =>
+      (await api.post(`/client/exercises/${exerciseId}/log-completion`)).data,
+    onSuccess: () => {
+      toast.success('Logged! 💪');
+      navigate('/client/exercises');
+    },
+    onError: () => toast.error("Couldn't log completion. Try again."),
+  });
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin" /></div>;
+  }
+
+  if (!exercise) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-4xl mb-3">❌</p>
+          <p className="font-semibold">Exercise not found</p>
+          <button onClick={() => navigate('/client/exercises')} className="mt-4 text-primary text-sm underline">Back to library</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="flex items-center gap-3 p-4 border-b border-border">
+        <button onClick={() => navigate(-1)} className="text-muted-foreground hover:text-foreground transition-colors">← Back</button>
+        <h1 className="font-display font-bold">{exercise.title}</h1>
+      </div>
+
+      <div className="flex-1 p-6 space-y-5 max-w-lg mx-auto w-full">
+        {/* Video or thumbnail */}
+        {exercise.video?.url ? (
+          <VideoPlayer src={exercise.video.url} className="w-full rounded-2xl" />
+        ) : exercise.video?.youtube_id ? (
+          <div className="rounded-2xl overflow-hidden aspect-video">
+            <iframe
+              src={`https://www.youtube.com/embed/${exercise.video.youtube_id}`}
+              className="w-full h-full"
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+            />
+          </div>
+        ) : exercise.thumbnail_url ? (
+          <img src={exercise.thumbnail_url} alt={exercise.title} className="w-full rounded-2xl object-cover max-h-64" />
+        ) : (
+          <div className="w-full h-52 bg-muted rounded-2xl flex items-center justify-center"><span className="text-6xl">🏃</span></div>
+        )}
+
+        {exercise.description && (
+          <p className="text-muted-foreground text-sm leading-relaxed">{exercise.description}</p>
+        )}
+
+        {exercise.instructions && (
+          <div className="bg-card rounded-2xl border border-border p-5">
+            <p className="text-sm font-semibold mb-2">Instructions</p>
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{exercise.instructions}</p>
+          </div>
+        )}
+
+        <button
+          onClick={() => logCompletion.mutate()}
+          disabled={logCompletion.isPending}
+          className="w-full gradient-primary text-white font-bold py-4 rounded-2xl shadow-primary hover:opacity-90 disabled:opacity-50"
+        >
+          {logCompletion.isPending ? 'Saving…' : "Mark as Done ✓"}
+        </button>
+        <p className="text-xs text-muted-foreground text-center">This exercise is not in your current plan. Only plan exercises use AI motion tracking.</p>
+      </div>
+    </div>
+  );
+};
+
 // ── Main ExerciseSession ──────────────────────────────────────────────
 const PaidExerciseSession = () => {
   const { exerciseId } = useParams<{ exerciseId: string }>();
   const navigate       = useNavigate();
+  const { t }          = useLanguage();
   const [phase, setPhase]           = useState<Phase>('intro');
   const [sessionId, setSessionId]   = useState<number | null>(null);
   const [activeSide, setActiveSide] = useState<Side | null>(null);
@@ -215,7 +314,7 @@ const PaidExerciseSession = () => {
   const [elapsed, setElapsed]       = useState(0);
   const [sessionBestAngle, setSessionBestAngle] = useState(0);
 
-  const { data: planData } = useMyPlan();
+  const { data: planData, isLoading: planLoading } = useMyPlan();
 
   const targetId = parseInt(exerciseId ?? '0');
   let exercise: any = null;
@@ -248,6 +347,7 @@ const PaidExerciseSession = () => {
     exercise?.tracking_config ?? undefined,
     activeSide ?? undefined,
     holdSeconds,
+    t,
   );
 
   // Track session-best angle for the ROM gauge
@@ -314,19 +414,12 @@ const PaidExerciseSession = () => {
   const formatTime = (s: number) =>
     `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 
+  if (!exercise && planLoading) {
+    return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin" /></div>;
+  }
+
   if (!exercise) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-4xl mb-3">❌</p>
-          <p className="font-semibold">Exercise not found in your plan</p>
-          <button onClick={() => navigate('/client/plan')}
-            className="mt-4 text-primary text-sm underline">
-            Back to plan
-          </button>
-        </div>
-      </div>
-    );
+    return <LibraryExerciseViewer exerciseId={exerciseId ?? ''} />;
   }
 
   // Pull rep joint rule for the ROM gauge
@@ -362,8 +455,8 @@ const PaidExerciseSession = () => {
         <div className="flex-1 p-6 space-y-6 max-w-lg mx-auto w-full">
           {/* Exercise illustration */}
           <div className="bg-muted rounded-2xl h-52 flex items-center justify-center overflow-hidden">
-            {exercise.illustration_url
-              ? <img src={exercise.illustration_url} alt={exercise.title}
+            {(exercise.thumbnail_url ?? exercise.illustration_url)
+              ? <img src={exercise.thumbnail_url ?? exercise.illustration_url} alt={exercise.title}
                   className="w-full h-full object-cover" />
               : <span className="text-6xl">🏃</span>
             }
@@ -434,7 +527,7 @@ const PaidExerciseSession = () => {
             disabled={startMutation.isPending}
             className="w-full gradient-primary text-white font-bold py-4 rounded-2xl shadow-primary hover:opacity-90 transition disabled:opacity-50 text-lg"
           >
-            {startMutation.isPending ? 'Starting...' : '▶ Start Exercise'}
+            {startMutation.isPending ? 'Starting...' : `▶ ${t('session.start')}`}
           </button>
         </div>
       </div>
@@ -606,7 +699,7 @@ const PaidExerciseSession = () => {
             onClick={handleComplete}
             className="w-full bg-success text-white font-bold py-4 rounded-2xl hover:opacity-90 transition text-lg"
           >
-            ✅ Complete Session
+            ✅ {t('session.complete')}
           </button>
         </div>
       </div>

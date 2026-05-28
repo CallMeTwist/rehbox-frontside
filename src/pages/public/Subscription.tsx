@@ -14,9 +14,9 @@ const plans = [
     popular: false,
   },
   {
-    id: "pro",
-    name: "Pro",
-    price: 7500,
+    id: "standard",
+    name: "Standard",
+    price: 2000,
     period: "month",
     icon: Crown,
     color: "border-primary shadow-primary",
