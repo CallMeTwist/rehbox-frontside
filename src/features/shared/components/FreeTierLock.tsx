@@ -45,13 +45,13 @@ export function FreeTierLock({ feature, variant = 'page', previewImage }: Props)
       <div
         className="flex items-center justify-between gap-3 p-3 rounded-xl"
         style={{
-          background: 'rgba(229,25,125,0.08)',
-          border: '1px solid rgba(229,25,125,0.22)',
+          background: 'rgba(229,25,125,0.10)',
+          border: '1px solid rgba(229,25,125,0.30)',
         }}
       >
         <div className="flex items-center gap-2 min-w-0">
-          <Lock size={14} className="text-pink-400 flex-shrink-0" />
-          <p className="text-xs text-white/80 truncate">{headline}</p>
+          <Lock size={14} className="text-[#C4006A] flex-shrink-0" />
+          <p className="text-xs font-semibold text-[#C4006A] truncate">{headline}</p>
         </div>
         <Link
           to="/upgrade"

@@ -8,11 +8,12 @@ import {
   Smartphone, Video, TrendingUp,
 } from "lucide-react";
 import {
-  Eyebrow, SectionHeading, GradientText, StatCounter, MonogramAvatar,
+  Eyebrow, SectionHeading, GradientText, MonogramAvatar,
 } from "@/features/auth/components/public/primitives";
 import {
-  revealOnScroll, prefersReducedMotion, useCountUp,
+  revealOnScroll, prefersReducedMotion,
 } from "@/features/auth/components/public/useReveal";
+import Hero from "@/features/auth/components/public/Hero";
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 
@@ -107,18 +108,8 @@ const testimonials = [
 
 const Landing = () => {
   const containerRef = useRef<HTMLDivElement>(null);
-  useCountUp();
 
   useGSAP(() => {
-    if (!prefersReducedMotion()) {
-      gsap.timeline({ defaults: { ease: "power3.out" } })
-        .from(".hero-title", { opacity: 0, y: 28, duration: 0.7 })
-        .from(".hero-sub", { opacity: 0, y: 22, duration: 0.55 }, "-=0.35")
-        .from(".hero-ctas", { opacity: 0, y: 20, duration: 0.5 }, "-=0.3")
-        .from(".hero-stats", { opacity: 0, duration: 0.5 }, "-=0.25")
-        .from(".hero-figure", { opacity: 0, scale: 0.92, duration: 0.85, ease: "power2.out" }, "-=0.65");
-    }
-
     const scope = containerRef.current;
     if (!scope) return;
     revealOnScroll(scope);
@@ -131,62 +122,7 @@ const Landing = () => {
   return (
     <div ref={containerRef}>
       {/* ── HERO ─────────────────────────────────────────────────────────── */}
-      <section className="relative min-h-screen flex items-center overflow-hidden bg-pub-hero pt-16">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.035) 1px,transparent 1px)",
-            backgroundSize: "46px 46px",
-            maskImage: "radial-gradient(circle at 70% 40%, #000, transparent 75%)",
-            WebkitMaskImage: "radial-gradient(circle at 70% 40%, #000, transparent 75%)",
-          }}
-        />
-        <div className="relative max-w-6xl mx-auto px-6 md:px-12 py-20 w-full grid md:grid-cols-2 gap-12 items-center">
-          <div className="hero-copy">
-            <Eyebrow tone="dark" live>Nigeria's digital physiotherapy platform</Eyebrow>
-            <h1 className="hero-title font-display font-bold text-5xl md:text-[4.5rem] text-white leading-[1.03] tracking-tight mt-6">
-              Recover with<br />precision, <GradientText>at home.</GradientText>
-            </h1>
-            <p className="hero-sub text-lg md:text-xl mt-5 max-w-md" style={{ color: "#AEBCD8" }}>
-              AI motion tracking and certified physiotherapists, working together to guide every rep.
-            </p>
-            <div className="hero-ctas flex flex-col sm:flex-row gap-4 mt-8">
-              <Link
-                to="/register/client"
-                className="inline-flex items-center justify-center gap-2.5 font-bold px-8 py-4 rounded-2xl text-white text-base hover:opacity-90 transition-opacity"
-                style={{ background: "var(--pub-grad-magenta)", boxShadow: "0 12px 32px rgba(224,71,155,0.4)" }}
-              >
-                I'm a Patient <ArrowRight size={18} />
-              </Link>
-              <Link
-                to="/register/physio"
-                className="inline-flex items-center justify-center gap-2.5 font-bold px-8 py-4 rounded-2xl text-white text-base hover:bg-white/10 transition-colors"
-                style={{ border: "1px solid rgba(255,255,255,0.25)" }}
-              >
-                I'm a Physiotherapist
-              </Link>
-            </div>
-            <div className="hero-stats flex items-center gap-10 mt-12">
-              <StatCounter value={500} suffix="+" label="Patients" />
-              <StatCounter value={80} suffix="+" label="Certified PTs" />
-              <StatCounter value={95} suffix="%" label="Recovery Rate" />
-            </div>
-          </div>
-          <div className="hero-figure relative flex items-center justify-center">
-            <div
-              className="absolute w-[80%] h-[70%] rounded-full"
-              style={{ background: "radial-gradient(circle, rgba(224,71,155,0.28), rgba(38,198,218,0.12) 45%, transparent 70%)" }}
-            />
-            <img
-              src="/hero-runner.png"
-              alt="Athlete with live AI pose-tracking skeleton"
-              className="relative w-full max-w-md object-contain"
-              style={{ filter: "drop-shadow(0 0 40px rgba(38,198,218,0.4))" }}
-            />
-          </div>
-        </div>
-      </section>
+      <Hero />
 
       {/* ── TRUST STRIP ──────────────────────────────────────────────────── */}
       <section className="px-6 md:px-12 py-14" style={{ background: "var(--pub-card-light)" }}>
