@@ -63,6 +63,7 @@ interface AuthUser {
   name: string;
   email: string;
   role: 'pt' | 'client';
+  avatar_url?: string | null;
   client_id?: number;
   vetting_status?: 'pending' | 'approved' | 'rejected';
   subscription_status?: 'inactive' | 'active' | 'expired';
