@@ -200,6 +200,29 @@
     -webkit-text-fill-color: transparent; color: transparent;
   }
 
+  /* ── Hero (premium redesign 2026) ─────────────────────────────── */
+  .pub-grad-text-3 {
+    background: linear-gradient(90deg, #26C6DA 0%, #7C5CFF 45%, #E0479B 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+  }
+
+  @keyframes pub-float { 0%,100% { transform: translateY(0);   opacity: .45; } 50% { transform: translateY(-22px); opacity: 1; } }
+  @keyframes pub-pulse { 0%,100% { box-shadow: 0 0 0 5px rgba(38,198,218,.18), 0 0 12px rgba(38,198,218,.9); } 50% { box-shadow: 0 0 0 9px rgba(38,198,218,.05), 0 0 18px rgba(38,198,218,.9); } }
+  @keyframes pub-scan  { 0%,100% { top: 18%; } 50% { top: 78%; } }
+  @keyframes pub-spin  { to { transform: rotate(360deg); } }
+
+  .pub-anim-float    { animation: pub-float 7s ease-in-out infinite; }
+  .pub-anim-pulse    { animation: pub-pulse 2.4s ease-in-out infinite; }
+  .pub-anim-scan     { animation: pub-scan 4s ease-in-out infinite; }
+  .pub-anim-spin     { animation: pub-spin 26s linear infinite; }
+  .pub-anim-spin-rev { animation: pub-spin 40s linear infinite reverse; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pub-anim-float, .pub-anim-pulse, .pub-anim-scan,
+    .pub-anim-spin, .pub-anim-spin-rev { animation: none !important; }
+  }
+
   /* ── Status badges ───────────────────────────────────────────── */
   .badge-approved {
     @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;

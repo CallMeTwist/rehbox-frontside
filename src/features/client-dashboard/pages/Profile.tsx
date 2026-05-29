@@ -58,15 +58,16 @@
 // src/features/client-dashboard/pages/Profile.tsx
 // src/features/client-dashboard/pages/Profile.tsx
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Camera, Edit2, Save, Bell, BellOff, Globe, Crown, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuthStore, useIsFree } from "@/store/authStore";
-import { useClientProfile, useUpdateClientProfile } from "../hooks/useClientProfile";
+import { useClientProfile, useUpdateClientProfile, useUploadClientAvatar } from "../hooks/useClientProfile";
 import CoinWallet from "@/features/client-dashboard/components/CoinWallet";
 import toast from "react-hot-toast";
 import { usePushNotifications } from "@/features/shared/hooks/usePushNotification";
 import LanguageSelector from "@/features/client-dashboard/components/LanguageSelector";
+import { compressImage } from "@/lib/compressImage";
 
 const PLAN_LABELS: Record<string, string> = {
   basic: "Basic",
@@ -140,8 +141,24 @@ const Profile = () => {
   const { user } = useAuthStore((s) => s);
   const { data, isLoading } = useClientProfile();
   const updateProfile = useUpdateClientProfile();
+  const uploadAvatar = useUploadClientAvatar();
   const isClient = user?.role === 'client';
   const isFree = useIsFree();
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await compressImage(file);
+      await uploadAvatar.mutateAsync(compressed);
+      toast.success('Profile photo updated!');
+    } catch {
+      toast.error('Failed to upload photo.');
+    }
+    e.target.value = '';
+  };
 
 
   const [editing, setEditing] = useState(false);
@@ -235,14 +252,28 @@ const Profile = () => {
       <div className="bg-card rounded-2xl p-6 shadow-card border border-border">
         <div className="flex items-center gap-5">
           <div className="relative">
-            <div className="w-20 h-20 rounded-2xl gradient-primary flex items-center justify-center border-2 border-border">
-              <span className="text-white font-display font-bold text-2xl">
-                {(profileData?.name ?? user?.name ?? "U")
-                  .charAt(0)
-                  .toUpperCase()}
-              </span>
+            <div className="w-20 h-20 rounded-2xl gradient-primary flex items-center justify-center border-2 border-border overflow-hidden">
+              {profileData?.avatar_url ? (
+                <img src={profileData.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <svg viewBox="0 0 80 80" fill="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="40" cy="30" r="16" fill="white" fillOpacity="0.9" />
+                  <ellipse cx="40" cy="72" rx="26" ry="18" fill="white" fillOpacity="0.9" />
+                </svg>
+              )}
             </div>
-            <button className="absolute -bottom-1 -right-1 w-7 h-7 gradient-pink rounded-full flex items-center justify-center shadow-sm">
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+            <button
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={uploadAvatar.isPending}
+              className="absolute -bottom-1 -right-1 w-7 h-7 gradient-pink rounded-full flex items-center justify-center shadow-sm"
+            >
               <Camera size={12} className="text-white" />
             </button>
           </div>

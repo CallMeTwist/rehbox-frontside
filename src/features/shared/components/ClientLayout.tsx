@@ -63,8 +63,12 @@ const ClientLayout = () => {
       {sidebarOpen && (
         <div className="px-4 py-4 border-b border-sidebar-border">
           <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'hsl(var(--sidebar-accent))' }}>
-            <div className="w-10 h-10 rounded-full gradient-pink flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-              {user.name.charAt(0).toUpperCase()}
+            <div className="w-10 h-10 rounded-full gradient-pink flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden">
+              {user.avatar_url ? (
+                <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                user.name.charAt(0).toUpperCase()
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white text-sm font-semibold truncate">{user.name}</p>
@@ -114,8 +118,12 @@ const ClientLayout = () => {
             <LanguageSelector />
             <CoinWallet coins={user.coin_balance || 0} />
             <NotificationBell />
-            <div className="w-8 h-8 rounded-full gradient-pink flex items-center justify-center text-white font-bold text-xs border-2 border-border">
-              {user.name.charAt(0).toUpperCase()}
+            <div className="w-8 h-8 rounded-full gradient-pink flex items-center justify-center text-white font-bold text-xs border-2 border-border overflow-hidden">
+              {user.avatar_url ? (
+                <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                user.name.charAt(0).toUpperCase()
+              )}
             </div>
           </div>
         </header>

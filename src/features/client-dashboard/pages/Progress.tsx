@@ -32,16 +32,16 @@ function UpgradeUpsell() {
       to="/upgrade"
       className="block rounded-2xl p-6 transition-all hover:scale-[1.01]"
       style={{
-        background: 'linear-gradient(135deg, rgba(44,95,195,0.18), rgba(229,25,125,0.12))',
-        border: '1px solid rgba(229,25,125,0.28)',
+        background: 'linear-gradient(135deg, #1B3E8F 0%, #2C5FC3 45%, #E5197D 100%)',
+        boxShadow: '0 8px 32px rgba(229,25,125,0.22)',
       }}
     >
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="font-display font-bold text-white text-lg mb-1">See your full progress</p>
-          <p className="text-white/55 text-sm">Pain trends, weekly compliance, AI form scores, and PT-shared reports.</p>
+          <p className="text-white/80 text-sm">Pain trends, weekly compliance, AI form scores, and PT-shared reports.</p>
         </div>
-        <ArrowRight size={20} className="text-pink-400 flex-shrink-0" />
+        <ArrowRight size={20} className="text-white flex-shrink-0" />
       </div>
     </Link>
   );

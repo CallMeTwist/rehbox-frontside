@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Camera, Edit2, Save } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { mockPT } from "@/mock/data";
@@ -10,6 +10,7 @@ import {
 import toast from "react-hot-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
+import { compressImage } from "@/lib/compressImage";
 
 
 function usePTProfile() {
@@ -24,6 +25,23 @@ function useUpdatePTProfile() {
   return useMutation({
     mutationFn: (data: Record<string, string>) => api.patch('/pt/profile', data),
     onSuccess:  () => qc.invalidateQueries({ queryKey: ['pt-profile'] }),
+  });
+}
+
+function useUploadPTAvatar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => {
+      const fd = new FormData();
+      fd.append('avatar', file);
+      return api.post('/pt/profile/avatar', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    },
+    onSuccess: (res) => {
+      useAuthStore.getState().updateUser({ avatar_url: res.data.avatar_url });
+      qc.invalidateQueries({ queryKey: ['pt-profile'] });
+    },
   });
 }
 // ── Earnings section ─────────────────────────────────────────────────
@@ -139,6 +157,22 @@ const EarningsSection = () => {
 const Profile = () => {
   const { data, isLoading } = usePTProfile();
   const updateProfile       = useUpdatePTProfile();
+  const uploadAvatar        = useUploadPTAvatar();
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await compressImage(file);
+      await uploadAvatar.mutateAsync(compressed);
+      toast.success('Profile photo updated!');
+    } catch {
+      toast.error('Failed to upload photo.');
+    }
+    e.target.value = '';
+  };
 
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
@@ -208,12 +242,28 @@ const Profile = () => {
       <div className="bg-card rounded-2xl p-6 shadow-card border border-border">
         <div className="flex items-center gap-5">
           <div className="relative">
-            <div className="w-20 h-20 rounded-2xl gradient-primary flex items-center justify-center border-2 border-border">
-              <span className="text-white font-display font-bold text-2xl">
-                {(userData?.name ?? 'P').charAt(0).toUpperCase()}
-              </span>
+            <div className="w-20 h-20 rounded-2xl gradient-primary flex items-center justify-center border-2 border-border overflow-hidden">
+              {userData?.avatar_url ? (
+                <img src={userData.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <svg viewBox="0 0 80 80" fill="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="40" cy="30" r="16" fill="white" fillOpacity="0.9" />
+                  <ellipse cx="40" cy="72" rx="26" ry="18" fill="white" fillOpacity="0.9" />
+                </svg>
+              )}
             </div>
-            <button className="absolute -bottom-1 -right-1 w-7 h-7 gradient-primary rounded-full flex items-center justify-center shadow-sm">
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+            <button
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={uploadAvatar.isPending}
+              className="absolute -bottom-1 -right-1 w-7 h-7 gradient-pink rounded-full flex items-center justify-center shadow-sm"
+            >
               <Camera size={12} className="text-white" />
             </button>
           </div>
